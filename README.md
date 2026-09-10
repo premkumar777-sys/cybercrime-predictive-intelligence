@@ -526,12 +526,13 @@ Prioritize:
 
 **Real-world feasibility > technology hype**
 
-## Technology Stack
+## Technology 
 
 | Job | Tool | How we'll use it |
 | --- | --- | --- |
-| Main coding | **Cursor** | AI-assisted multi-file development |
-| Agentic coding | **Claude Code** | Large repo changes/debugging |
+| Main coding | **Cursor** |AI-assisted multi-file development |
+| Agentic coding | **Claude Code** |Large repo changes
+debugging |
 | GitHub integration | **GitHub Copilot** | Code assistance + review |
 | Rapid UI | **Google AI Studio / Lovable** | Generate/refine prototype UI |
 | AI capabilities | **Gemini API** | Analyst/report/explanation features |
