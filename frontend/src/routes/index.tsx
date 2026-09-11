@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api, formatCase, scorePercent, type ApiCase, type Location, type Prediction } from "@/lib/api";
 import { LiveIntelReport, LiveInvestigator } from "@/components/LiveIntelligence";
+import { LiveStatus } from "@/components/LiveStatus";
 
 type View = "landing" | "citizen" | "report" | "status" | "police" | "case" | "investigator" | "intel-report";
 
@@ -76,7 +77,7 @@ function App() {
       {view === "landing" && <Landing go={go}/>} 
       {view === "citizen" && <Citizen go={go}/>} 
       {view === "report" && <ReportForm go={go} onCreated={(caseId) => { setActiveCaseId(caseId); api.listCases().then(setLiveCases).catch(() => undefined); }}/>} 
-      {view === "status" && <Status go={go}/>} 
+      {view === "status" && <LiveStatus go={go} caseId={activeCaseId}/>} 
       {view === "police" && <Police go={go} liveCases={liveCases} onSelect={(caseId) => { setActiveCaseId(caseId); go("case"); }}/>} 
       {view === "case" && <CaseDetail go={go} caseId={activeCaseId}/>} 
       {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId}/>} 
