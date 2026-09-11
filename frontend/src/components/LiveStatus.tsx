@@ -44,7 +44,7 @@ export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
   }
 
   if (loading || !caseData) {
-    return <main className="mx-auto flex min-h-[700px] max-w-[1440px] items-center justify-center px-4 py-8 sm:px-6"><div className="text-center"><LoaderCircle className="mx-auto animate-spin text-primary"/><p className="mt-3 text-sm text-muted-foreground">Loading complaint intelligence...</p></div></main>;
+    return <main className="mx-auto flex min-h-[700px] max-w-[1440px] items-center justify-center px-4 py-8 sm:px-6"><div className="border border-border bg-card p-10 text-center civic-shadow"><LoaderCircle className="mx-auto animate-spin text-primary"/><p className="mt-4 text-xs font-bold uppercase text-primary">Live intelligence preview</p><p className="mt-2 text-sm text-muted-foreground">Analysing your submitted complaint and identifying nearby candidate locations...</p></div></main>;
   }
 
   const topPrediction = prediction?.predictions[0];
