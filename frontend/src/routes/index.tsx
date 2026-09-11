@@ -51,16 +51,14 @@ function App() {
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="bg-secondary text-secondary-foreground">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-1.5 text-[10px] sm:px-6">
-            <span>Smart India Hackathon · Fictional Demonstration</span>
             <span className="hidden sm:block">English · తెలుగు</span>
           </div>
         </div>
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center gap-3 px-4 sm:px-6">
-          <button aria-label="Go to home" onClick={() => go("landing")} className="grid size-11 shrink-0 place-items-center rounded-sm bg-primary text-primary-foreground"><ShieldCheck size={26}/></button>
+          <button aria-label="Go to home" onClick={() => go("landing")} className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary text-primary-foreground"><img src="/telangana-cybercrime-logo.jpeg" alt="Telangana Cybercrime Predictive Intelligence logo" className="size-full object-cover" /></button>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-xs font-semibold text-primary sm:text-sm">తెలంగాణ సైబర్ క్రైమ్ ప్రిడిక్టివ్ ఇంటెలిజెన్స్</div>
             <div className="truncate text-sm font-extrabold sm:text-lg">Telangana Cybercrime Predictive Intelligence Platform</div>
-            <div className="text-[9px] uppercase text-muted-foreground">Prototype · No official affiliation</div>
           </div>
           <button className="ml-auto p-2 lg:hidden" aria-label="Toggle navigation" onClick={() => setMobile(!mobile)}>{mobile ? <X/> : <Menu/>}</button>
           <nav className="ml-auto hidden items-center gap-1 lg:flex">
@@ -83,7 +81,7 @@ function App() {
       {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId}/>} 
       {view === "intel-report" && <LiveIntelReport go={go} caseId={activeCaseId}/>} 
       <footer className="border-t border-border bg-secondary px-4 py-5 text-secondary-foreground">
-        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-2 text-xs sm:flex-row"><span>© 2026 SIH Prototype · Fictional demonstration data only</span><span>Not affiliated with Telangana Police or any government authority</span></div>
+        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-2 text-xs sm:flex-row"><span>© 2026 SIH Prototype</span></div>
       </footer>
     </div>
   );
