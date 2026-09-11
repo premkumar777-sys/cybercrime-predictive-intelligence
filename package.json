@@ -1,0 +1,12 @@
+{
+  "name": "cybercrime-predictive-intelligence",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names FRONTEND,BACKEND --prefix-colors blue,green \"npm --prefix frontend run dev -- --host 127.0.0.1\" \"backend\\\\.venv\\\\Scripts\\\\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload\"",
+    "install:frontend": "npm --prefix frontend install",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
