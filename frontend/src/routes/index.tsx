@@ -252,9 +252,9 @@ function Landing({ go, onRegister, onTrack }: { go: (v: View) => void; onRegiste
       <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6">
         <div className="grid gap-6 lg:grid-cols-3">
           {[
-            { title: "Women & children related crime", category: "Women and children related crime", image: "/complaint-cards/safety-support.png", description: "Get support and submit a protected report." },
+            { title: "Social media fraud", category: "Social Media Fraud", image: "/complaint-cards/social-media-fraud.png", description: "Report impersonation, fake profiles, social harassment, and online scams." },
             { title: "Financial fraud", category: "Financial fraud", image: "/complaint-cards/financial-fraud.png", description: "Report UPI, card, banking, or investment fraud." },
-            { title: "Other cybercrime", category: "Other cybercrime", image: "/complaint-cards/cyber-safety.png", description: "Report impersonation, account misuse, and more." },
+            { title: "Other cybercrime", category: "Other cybercrime", image: "/complaint-cards/cyber-safety.png", description: "Report hacking, ransomware, identity theft, and digital breaches." },
           ].map((card) => (
             <article className="overflow-hidden rounded-xl border border-primary/30 bg-card shadow-lg" key={card.category}>
               <img src={card.image} alt="" className="h-52 w-full object-cover" />

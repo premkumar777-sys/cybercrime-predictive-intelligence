@@ -259,11 +259,10 @@ export function LiveInvestigator({
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <span
-                  className={`px-2 py-0.5 text-xs font-bold rounded-xs ${
-                    caseData.status === "ANALYZED"
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                  }`}
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs ${caseData.status === "ANALYZED"
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                    }`}
                 >
                   {caseData.status}
                 </span>
@@ -288,11 +287,10 @@ export function LiveInvestigator({
                   </p>
                 </div>
                 <span
-                  className={`px-3 py-1 text-xs font-bold rounded-xs ${
-                    prediction?.risk_level === "HIGH"
-                      ? "bg-destructive text-destructive-foreground"
-                      : "bg-primary text-primary-foreground"
-                  }`}
+                  className={`px-3 py-1 text-xs font-bold rounded-xs ${prediction?.risk_level === "HIGH"
+                    ? "bg-destructive text-destructive-foreground"
+                    : "bg-primary text-primary-foreground"
+                    }`}
                 >
                   {prediction?.risk_level ?? "PENDING"}
                 </span>
@@ -315,8 +313,8 @@ export function LiveInvestigator({
                   {busy
                     ? "Executing AI Location Engine..."
                     : prediction
-                    ? "Re-Run Predictive Analysis"
-                    : "Analyse Case in Predictive Engine"}
+                      ? "Re-Run Predictive Analysis"
+                      : "Analyse Case in Predictive Engine"}
                 </Button>
               </div>
 
@@ -477,7 +475,7 @@ export function LiveIntelReport({
             </div>
             <div className="border border-border p-3">
               <p className="text-[10px] uppercase text-muted-foreground font-bold">
-                Mule Account
+                credited account
               </p>
               <p className="mt-1 text-sm font-bold text-foreground truncate">
                 {caseData.destination_account}
@@ -488,30 +486,59 @@ export function LiveIntelReport({
 
         {prediction ? (
           <>
-            <div className="mt-6 grid gap-6 sm:grid-cols-3">
-              <div className="border border-border p-4">
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Assessed Risk Level
-                </p>
-                <p className="mt-2 text-xl font-extrabold text-destructive">
-                  {prediction.risk_level}
-                </p>
-              </div>
-              <div className="border border-border p-4">
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Candidate Locations
-                </p>
-                <p className="mt-2 text-xl font-extrabold text-foreground">
-                  {prediction.predictions.length}
-                </p>
-              </div>
-              <div className="border border-border p-4">
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Peak Withdrawal Likelihood
-                </p>
-                <p className="mt-2 text-xl font-extrabold text-destructive">
-                  {scorePercent(prediction.predictions[0]?.risk_score ?? 0)}
-                </p>
+            {/* Social Media Fraud Advisory Banner */}
+            <div className="mt-6 overflow-hidden border border-border">
+              <div className="flex flex-col sm:flex-row">
+                {/* Left: icon panel */}
+                <div className="flex shrink-0 items-center justify-center bg-gradient-to-br from-blue-700 via-indigo-700 to-blue-900 p-6 sm:w-48">
+                  <div className="text-center">
+                    <div className="mx-auto mb-2 grid size-16 place-items-center rounded-full bg-white/10 ring-2 ring-white/20">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" className="size-9">
+                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                      </svg>
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Active Threat</p>
+                    <p className="mt-0.5 text-xs font-semibold text-white">Social Media</p>
+                  </div>
+                </div>
+
+                {/* Right: content */}
+                <div className="flex-1 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Advisory · Cyber Crime Wing</p>
+                      <h3 className="mt-0.5 text-base font-extrabold text-foreground">Social Media Fraud — Active Threat Category</h3>
+                    </div>
+                    <span className="bg-destructive px-2 py-0.5 text-xs font-bold text-white">HIGH VOLUME</span>
+                  </div>
+
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    Fraudsters exploit social platforms (Facebook, Instagram, WhatsApp, Telegram) to impersonate banks, government officials, and family members. Victims are lured into sharing OTPs, making payments, or installing malicious APKs.
+                  </p>
+
+                  {/* Sub-type chips */}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {["Fake Profile Impersonation", "Romance / Matrimonial Scam", "Investment Fraud", "Fake Customer Care", "Account Takeover", "Sextortion"].map((tag) => (
+                      <span key={tag} className="border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Key indicators */}
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {[
+                      { label: "Never share OTP", desc: "No legitimate bank/govt ever asks for your OTP or PIN." },
+                      { label: "Verify identity", desc: "Call back on official numbers before sending money to 'friends'." },
+                      { label: "Report on 1930", desc: "Call cybercrime helpline within golden hour to freeze transfers." },
+                    ].map(({ label, desc }) => (
+                      <div key={label} className="border-l-2 border-primary pl-3">
+                        <p className="text-[11px] font-bold text-foreground">{label}</p>
+                        <p className="text-[10px] text-muted-foreground leading-snug">{desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
