@@ -10,4 +10,5 @@
 data_store.json
 *.log
 .env
+*.db
 .DS_Store
