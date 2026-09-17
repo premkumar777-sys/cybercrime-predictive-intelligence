@@ -51,6 +51,8 @@ class PredictionResponse(BaseModel):
     case_id: str
     risk_level: str
     predictions: List[PredictionItem]
+    status: Optional[str] = "COMPLETED"
+    reason: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

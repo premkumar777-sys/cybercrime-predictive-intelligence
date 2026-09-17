@@ -1,4 +1,15 @@
+"""
+train_candidate_scorer.py
+
+SIH Problem Statement 26184
+This script trains a Candidate Ranking System using RandomForestRegressor.
+Crucially, this is NOT a coordinate-regression model. It scores and ranks 
+candidate locations (ATMs/Accounts) based on geographic relevance, temporal 
+proximity, and transaction-hop features to produce Top-K likely cash-out targets.
+"""
+
 import pandas as pd
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error

@@ -17,10 +17,12 @@ export type PredictionItem = {
   explanation: string[];
 };
 
-export type Prediction = {
+export interface Prediction {
   case_id: string;
   risk_level: string;
   predictions: PredictionItem[];
+  status?: string;
+  reason?: string;
 };
 
 export type Location = {

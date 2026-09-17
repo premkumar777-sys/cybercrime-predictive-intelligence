@@ -47,6 +47,15 @@ class MLPredictionService(PredictionService):
         tx_time = case.get("transaction_time")
         hour = tx_time.hour if tx_time else 12
 
+        if amount < 5000:
+            return {
+                "case_id": case.get("case_id"),
+                "risk_level": "UNKNOWN",
+                "predictions": [],
+                "status": "INSUFFICIENT_DATA",
+                "reason": "Insufficient transaction-hop data available to confidently rank cash-out locations."
+            }
+
         items = []
         for lid, loc in locations.items():
             base_risk = self.base_weights.get(lid, 0.5)
