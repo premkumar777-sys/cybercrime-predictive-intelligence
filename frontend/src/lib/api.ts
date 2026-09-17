@@ -31,6 +31,23 @@ export type Location = {
   location_type?: string;
 };
 
+export type UserRole = "citizen" | "police" | "investigator";
+
+export type AuthUser = {
+  email: string;
+  name: string;
+  role: UserRole;
+};
+
+export type CitizenProfile = {
+  full_name: string;
+  phone: string;
+  email: string;
+  identity_type: string;
+  identity_number: string;
+  returning_citizen: boolean;
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -43,6 +60,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  registerCitizen: (payload: Omit<CitizenProfile, "returning_citizen">) =>
+    request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
+  login: (payload: { email: string; role: UserRole }) =>
+    request<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   listCases: () => request<ApiCase[]>("/cases"),
   getCase: (caseId: string) => request<ApiCase>(`/cases/${encodeURIComponent(caseId)}`),
   getPrediction: (caseId: string) => request<Prediction>(`/cases/${encodeURIComponent(caseId)}/predictions`),

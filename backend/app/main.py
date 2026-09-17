@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .schemas import CaseCreate, PredictionResponse
+from .schemas import CaseCreate, CitizenRegistration, CitizenRegistrationResponse, LoginRequest, LoginResponse, PredictionResponse
 from .container import repo, predictor
 from pathlib import Path
 
@@ -21,11 +21,32 @@ def startup_event():
     repo.load()
     if not repo.locations:
         repo.seed_locations()
+    repo.seed_users()
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest):
+    email = payload.email.strip().lower()
+    role = payload.role.strip().lower()
+    if role not in {"citizen", "police", "investigator"}:
+        raise HTTPException(status_code=400, detail="invalid role")
+    if not email.endswith("@gmail.com"):
+        raise HTTPException(status_code=401, detail="Please use a valid Gmail address.")
+    user = repo.get_user(email)
+    if not user or user["role"] != role:
+        raise HTTPException(status_code=401, detail="This email is not registered for the selected role.")
+    return user
+
+
+@app.post("/citizens/register", response_model=CitizenRegistrationResponse)
+def register_citizen(payload: CitizenRegistration):
+    profile, returning_citizen = repo.register_citizen(payload.dict())
+    return {**profile, "returning_citizen": returning_citizen}
 
 
 @app.post("/cases")

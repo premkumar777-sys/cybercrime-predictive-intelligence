@@ -14,6 +14,8 @@ class Repository:
         self.transactions: Dict[str, dict] = {}
         self.locations: Dict[str, dict] = {}
         self.predictions: Dict[str, dict] = {}
+        self.users: Dict[str, dict] = {}
+        self.citizen_profiles: Dict[str, dict] = {}
 
     def load(self):
         if self.data_file.exists():
@@ -24,6 +26,8 @@ class Repository:
                     self.transactions = raw.get("transactions", {})
                     self.locations = raw.get("locations", {})
                     self.predictions = raw.get("predictions", {})
+                    self.users = raw.get("users", {})
+                    self.citizen_profiles = raw.get("citizen_profiles", {})
             except Exception:
                 # ignore corrupt store
                 pass
@@ -37,6 +41,8 @@ class Repository:
                     "transactions": self.transactions,
                     "locations": self.locations,
                     "predictions": self.predictions,
+                    "users": self.users,
+                    "citizen_profiles": self.citizen_profiles,
                 }, f, default=str, indent=2)
 
     def create_case(self, case_data: dict) -> dict:
@@ -70,6 +76,37 @@ class Repository:
 
     def get_prediction(self, case_id: str):
         return self.predictions.get(case_id)
+
+    def seed_users(self):
+        """Seed only demo identities. Authentication must always look up a user here."""
+        sample_users = [
+            ("citizen@gmail.com", "citizen", "Demo Citizen"),
+            ("police@gmail.com", "police", "Demo Police Officer"),
+            ("investigator@gmail.com", "investigator", "Demo Investigator"),
+        ]
+        changed = False
+        for email, role, name in sample_users:
+            if email not in self.users:
+                self.users[email] = {"email": email, "role": role, "name": name}
+                changed = True
+        if changed:
+            self.save()
+
+    def get_user(self, email: str):
+        return self.users.get(email.lower())
+
+    def register_citizen(self, profile: dict) -> tuple[dict, bool]:
+        """Return the stored profile and whether it is an exact returning-citizen match."""
+        email = profile["email"].lower()
+        profile_key = "|".join((profile["full_name"].strip().lower(), email, profile["identity_type"], profile["identity_number"].strip()))
+        existing = self.citizen_profiles.get(profile_key)
+        if existing:
+            exact_match = all(existing.get(key) == profile.get(key) for key in ("full_name", "email", "identity_type", "identity_number"))
+            return existing, exact_match
+        stored = {**profile, "email": email}
+        self.citizen_profiles[profile_key] = stored
+        self.save()
+        return stored, False
 
     def seed_locations(self):
         # simple synthetic locations
