@@ -5,6 +5,7 @@ import type {
   RecentActivity,
   PoliceDashboardStats,
   ComplaintStatus,
+  PoliceActionLog,
 } from "@/types/police";
 import {
   initialPoliceComplaints,
@@ -129,7 +130,12 @@ export const policeService = {
     const timeString = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
     const fullDateString = `${now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}, ${timeString}`;
 
-    const newLog = {
+    const targetComplaint = complaintsState[index];
+    if (!targetComplaint) {
+      throw new Error(`Complaint ${complaintId} not found`);
+    }
+
+    const newLog: PoliceActionLog = {
       id: `LOG-${Date.now()}`,
       timestamp: fullDateString,
       timeAgo: "Just now",
@@ -137,10 +143,9 @@ export const policeService = {
       badgeId,
       action: `Status updated to '${newStatus}'`,
       statusChangedTo: newStatus,
-      note: officerNote?.trim() || undefined,
+      ...(officerNote?.trim() ? { note: officerNote.trim() } : {}),
     };
 
-    const targetComplaint = complaintsState[index];
     const updatedComplaint: PoliceComplaint = {
       ...targetComplaint,
       status: newStatus,
