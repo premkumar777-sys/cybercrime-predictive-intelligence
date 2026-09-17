@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .schemas import CaseCreate, PredictionResponse
+from .schemas import CaseCreate, CitizenRegistration, CitizenRegistrationResponse, LoginRequest, LoginResponse, PredictionResponse
 from .container import predictor
 from .database import get_db, Base, engine
 from .repositories.repository import Repository
@@ -27,6 +27,7 @@ def startup_event():
     try:
         repo = Repository(db)
         repo.seed_locations()
+        repo.seed_users()
     finally:
         db.close()
 
@@ -34,6 +35,28 @@ def startup_event():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    repo = Repository(db)
+    email = payload.email.strip().lower()
+    role = payload.role.strip().lower()
+    if role not in {"citizen", "police", "investigator"}:
+        raise HTTPException(status_code=400, detail="invalid role")
+    if not email.endswith("@gmail.com"):
+        raise HTTPException(status_code=401, detail="Please use a valid Gmail address.")
+    user = repo.get_user(email)
+    if not user or user["role"] != role:
+        raise HTTPException(status_code=401, detail="This email is not registered for the selected role.")
+    return user
+
+
+@app.post("/citizens/register", response_model=CitizenRegistrationResponse)
+def register_citizen(payload: CitizenRegistration, db: Session = Depends(get_db)):
+    repo = Repository(db)
+    profile, returning_citizen = repo.register_citizen(payload.dict())
+    return {**profile, "returning_citizen": returning_citizen}
 
 
 @app.post("/cases")

@@ -4,8 +4,18 @@ from ..models import CaseModel, LocationModel, PredictionModel
 from ..schemas import CaseCreate
 
 class Repository:
+    # Class-level dictionaries to simulate DB for new auth features
+    users = {}
+    citizen_profiles = {}
+
     def __init__(self, db: Session):
         self.db = db
+
+    def load(self):
+        pass
+        
+    def save(self):
+        pass
 
     def create_case(self, case_data: dict) -> dict:
         # Determine the next case_id (simple hack for now)
@@ -108,6 +118,37 @@ class Repository:
                 "location_type": l.location_type
             }
         return result
+
+    def seed_users(self):
+        """Seed only demo identities. Authentication must always look up a user here."""
+        sample_users = [
+            ("citizen@gmail.com", "citizen", "Demo Citizen"),
+            ("police@gmail.com", "police", "Demo Police Officer"),
+            ("investigator@gmail.com", "investigator", "Demo Investigator"),
+        ]
+        changed = False
+        for email, role, name in sample_users:
+            if email not in self.users:
+                self.users[email] = {"email": email, "role": role, "name": name}
+                changed = True
+        if changed:
+            self.save()
+
+    def get_user(self, email: str):
+        return self.users.get(email.lower())
+
+    def register_citizen(self, profile: dict) -> tuple[dict, bool]:
+        """Return the stored profile and whether it is an exact returning-citizen match."""
+        email = profile["email"].lower()
+        profile_key = "|".join((profile["full_name"].strip().lower(), email, profile["identity_type"], profile["identity_number"].strip()))
+        existing = self.citizen_profiles.get(profile_key)
+        if existing:
+            exact_match = all(existing.get(key) == profile.get(key) for key in ("full_name", "email", "identity_type", "identity_number"))
+            return existing, exact_match
+        stored = {**profile, "email": email}
+        self.citizen_profiles[profile_key] = stored
+        self.save()
+        return stored, False
 
     def seed_locations(self):
         sample = [

@@ -8,10 +8,11 @@ import {
   Search, ShieldCheck, Siren, UploadCloud, UserRound, UsersRound, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { api, formatCase, scorePercent, type ApiCase, type Location, type Prediction } from "@/lib/api";
+import { api, formatCase, scorePercent, type ApiCase, type AuthUser, type CitizenProfile, type Location, type Prediction, type UserRole } from "@/lib/api";
 import { LiveIntelReport, LiveInvestigator } from "@/components/LiveIntelligence";
+import { LiveStatus } from "@/components/LiveStatus";
 
-type View = "landing" | "citizen" | "report" | "status" | "police" | "case" | "investigator" | "intel-report";
+type View = "landing" | "login" | "citizen-register" | "citizen" | "report" | "status" | "police" | "case" | "investigator" | "intel-report";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
@@ -41,48 +42,60 @@ const locations = [
 function App() {
   const [view, setView] = useState<View>("landing");
   const [mobile, setMobile] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [complaintCategory, setComplaintCategory] = useState("Financial fraud");
+  const [citizenProfile, setCitizenProfile] = useState<CitizenProfile | null>(null);
   const [liveCases, setLiveCases] = useState<ApiCase[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   useEffect(() => { api.listCases().then(setLiveCases).catch(() => setLiveCases([])); }, []);
-  const go = (next: View) => { setView(next); setMobile(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const roleForView: Partial<Record<View, UserRole>> = {
+    police: "police", case: "police", investigator: "investigator", "intel-report": "investigator",
+  };
+  const go = (next: View) => {
+    if (roleForView[next] && (!user || user.role !== roleForView[next])) next = "login";
+    setView(next); setMobile(false); window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const handleLogin = (loggedInUser: AuthUser) => {
+    setUser(loggedInUser);
+    go(loggedInUser.role);
+  };
+  const logout = () => { setUser(null); go("landing"); };
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="bg-secondary text-secondary-foreground">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-1.5 text-[10px] sm:px-6">
-            <span>Smart India Hackathon · Fictional Demonstration</span>
             <span className="hidden sm:block">English · తెలుగు</span>
           </div>
         </div>
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center gap-3 px-4 sm:px-6">
-          <button aria-label="Go to home" onClick={() => go("landing")} className="grid size-11 shrink-0 place-items-center rounded-sm bg-primary text-primary-foreground"><ShieldCheck size={26}/></button>
+          <button aria-label="Go to home" onClick={() => go("landing")} className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary text-primary-foreground"><img src="/telangana-cybercrime-logo.jpeg" alt="Telangana Cybercrime Predictive Intelligence logo" className="size-full object-cover" /></button>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-xs font-semibold text-primary sm:text-sm">తెలంగాణ సైబర్ క్రైమ్ ప్రిడిక్టివ్ ఇంటెలిజెన్స్</div>
             <div className="truncate text-sm font-extrabold sm:text-lg">Telangana Cybercrime Predictive Intelligence Platform</div>
-            <div className="text-[9px] uppercase text-muted-foreground">Prototype · No official affiliation</div>
           </div>
           <button className="ml-auto p-2 lg:hidden" aria-label="Toggle navigation" onClick={() => setMobile(!mobile)}>{mobile ? <X/> : <Menu/>}</button>
           <nav className="ml-auto hidden items-center gap-1 lg:flex">
             <NavButton active={view === "landing"} onClick={() => go("landing")} icon={<Home/>}>Home</NavButton>
-            <NavButton active={["citizen","report","status"].includes(view)} onClick={() => go("citizen")} icon={<UserRound/>}>Citizen</NavButton>
-            <NavButton active={["police","case"].includes(view)} onClick={() => go("police")} icon={<Landmark/>}>Police</NavButton>
-            <NavButton active={["investigator","intel-report"].includes(view)} onClick={() => go("investigator")} icon={<Fingerprint/>}>Investigator</NavButton>
+            {user ? <><NavButton active={view !== "landing"} onClick={() => go(user.role)} icon={<UserRound/>}>Dashboard</NavButton><Button variant="outline" onClick={logout}>Logout</Button></> : <Button onClick={() => go("login")}><LockKeyhole/>Login</Button>}
           </nav>
         </div>
         {mobile && <nav className="grid grid-cols-2 gap-2 border-t border-border bg-card p-3 lg:hidden">
-          <Button variant="outline" onClick={() => go("landing")}>Home</Button><Button variant="outline" onClick={() => go("citizen")}>Citizen</Button><Button variant="outline" onClick={() => go("police")}>Police</Button><Button variant="outline" onClick={() => go("investigator")}>Investigator</Button>
+          <Button variant="outline" onClick={() => go("landing")}>Home</Button>{user ? <><Button variant="outline" onClick={() => go(user.role)}>Dashboard</Button><Button className="col-span-2" variant="outline" onClick={logout}>Logout</Button></> : <Button onClick={() => go("login")}>Staff Login</Button>}
         </nav>}
       </header>
-      {view === "landing" && <Landing go={go}/>} 
-      {view === "citizen" && <Citizen go={go}/>} 
+      {view === "landing" && <Landing go={go} onRegister={(category) => { setComplaintCategory(category); go("citizen-register"); }}/>} 
+      {view === "login" && <Login onLogin={handleLogin} onCancel={() => go("landing")}/>} 
+      {view === "citizen-register" && <CitizenRegistration category={complaintCategory} onComplete={(profile) => { setCitizenProfile(profile); go("citizen"); }} onCancel={() => go("landing")}/>} 
+      {view === "citizen" && <Citizen go={go} profile={citizenProfile}/>} 
       {view === "report" && <ReportForm go={go} onCreated={(caseId) => { setActiveCaseId(caseId); api.listCases().then(setLiveCases).catch(() => undefined); }}/>} 
-      {view === "status" && <Status go={go}/>} 
+      {view === "status" && <LiveStatus go={go} caseId={activeCaseId}/>} 
       {view === "police" && <Police go={go} liveCases={liveCases} onSelect={(caseId) => { setActiveCaseId(caseId); go("case"); }}/>} 
       {view === "case" && <CaseDetail go={go} caseId={activeCaseId}/>} 
       {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId}/>} 
       {view === "intel-report" && <LiveIntelReport go={go} caseId={activeCaseId}/>} 
       <footer className="border-t border-border bg-secondary px-4 py-5 text-secondary-foreground">
-        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-2 text-xs sm:flex-row"><span>© 2026 SIH Prototype · Fictional demonstration data only</span><span>Not affiliated with Telangana Police or any government authority</span></div>
+        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-2 text-xs sm:flex-row"><span>© 2026 SIH</span></div>
       </footer>
     </div>
   );
@@ -92,22 +105,21 @@ function NavButton({ children, icon, active, onClick }: { children: ReactNode; i
   return <Button variant={active ? "default" : "ghost"} onClick={onClick} className="h-10">{icon}{children}</Button>;
 }
 
-function Landing({ go }: { go: (v: View) => void }) {
+function Landing({ go, onRegister }: { go: (v: View) => void; onRegister: (category: string) => void }) {
   const steps = ["Complaint","Transaction Intelligence","Analysis","Geospatial Intelligence","Location Ranking","Actionable Intelligence"];
   return <main>
     <section className="border-b border-border bg-card">
-      <div className="mx-auto grid min-h-[560px] max-w-[1440px] items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_.95fr]">
+      <div className="mx-auto max-w-[1440px] px-4 py-14 sm:px-6">
         <div>
           <div className="mb-5 inline-flex items-center gap-2 border-l-4 border-accent bg-muted px-3 py-2 text-xs font-bold uppercase text-secondary"><Radar size={16}/> Predictive Cybercrime Intelligence</div>
           <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.12] sm:text-5xl lg:text-6xl">From cybercrime complaints to proactive, location-based investigative intelligence.</h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">A unified fictional workflow connecting citizens, police teams, and investigators with explainable risk estimates for faster investigative decisions.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><Button size="lg" onClick={() => go("report")}><Siren/>Report Cybercrime</Button><Button size="lg" variant="secondary" onClick={() => go("police")}><Landmark/>Police Login</Button><Button size="lg" variant="outline" onClick={() => go("investigator")}><Fingerprint/>Investigator Login</Button></div>
+          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground">Register a complaint without signing in. Police and investigators can use the secure staff login for their workspaces.</p>
         </div>
-        <div className="civic-shadow border border-border bg-background p-5 sm:p-7">
-          <div className="flex items-start justify-between border-b border-border pb-4"><div><p className="text-xs font-bold uppercase text-muted-foreground">Live intelligence preview</p><h2 className="mt-1 text-xl font-bold">CASE-2026-00124</h2><p className="text-sm text-muted-foreground">UPI Fraud · ₹75,000</p></div><Risk risk="HIGH"/></div>
-          <div className="mt-5 grid gap-3">{locations.map((l,i) => <div key={l.name} className="flex items-center gap-3 border border-border bg-card p-3"><span className="grid size-8 shrink-0 place-items-center bg-primary text-xs font-bold text-primary-foreground">0{i+1}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{l.name} — {l.area}</p><p className="text-xs text-muted-foreground">Likely window {l.window}</p></div><strong className="text-lg text-destructive">{l.score}%</strong></div>)}</div>
-          <p className="mt-4 flex gap-2 bg-muted p-3 text-xs leading-relaxed text-muted-foreground"><AlertTriangle className="shrink-0 text-accent" size={17}/>Likelihood estimates only. Predictions are not guaranteed outcomes and require field verification.</p>
-        </div>
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">{[
+          { title: "Women & children related crime", category: "Women and children related crime", image: "/complaint-cards/safety-support.png", description: "Get support and submit a protected report." },
+          { title: "Financial fraud", category: "Financial fraud", image: "/complaint-cards/financial-fraud.png", description: "Report UPI, card, banking, or investment fraud." },
+          { title: "Other cybercrime", category: "Other cybercrime", image: "/complaint-cards/cyber-safety.png", description: "Report impersonation, account misuse, and more." },
+        ].map((card) => <article className="overflow-hidden rounded-xl border border-primary/30 bg-card shadow-lg" key={card.category}><img src={card.image} alt="" className="h-52 w-full object-cover"/><div className="bg-gradient-to-br from-slate-800 to-primary p-6 text-primary-foreground"><h2 className="text-xl font-extrabold uppercase">{card.title}</h2><p className="mt-2 min-h-10 text-sm text-primary-foreground/80">{card.description}</p><Button className="mt-5 bg-cyan-500 text-white hover:bg-cyan-400" onClick={() => onRegister(card.category)}>Register a complaint<ArrowRight/></Button></div></article>)}</div>
       </div>
     </section>
     <section className="bg-primary py-8 text-primary-foreground"><div className="mx-auto max-w-[1440px] px-4 sm:px-6"><p className="mb-5 text-center text-xs font-bold uppercase">Complaint-to-action workflow</p><div className="grid gap-px bg-primary-foreground/20 sm:grid-cols-3 lg:grid-cols-6">{steps.map((s,i)=><div className="bg-primary p-4" key={s}><span className="text-xs opacity-70">0{i+1}</span><p className="mt-4 text-sm font-semibold">{s}</p></div>)}</div></div></section>
@@ -116,14 +128,46 @@ function Landing({ go }: { go: (v: View) => void }) {
   </main>;
 }
 
+function CitizenRegistration({ category, onComplete, onCancel }: { category: string; onComplete: (profile: CitizenProfile) => void; onCancel: () => void }) {
+  const [fullName, setFullName] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState(""); const [identityType, setIdentityType] = useState("Aadhaar"); const [identityNumber, setIdentityNumber] = useState("");
+  const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setBusy(true); setError(null); try { onComplete(await api.registerCitizen({ full_name: fullName.trim(), phone: phone.trim(), email: email.trim(), identity_type: identityType, identity_number: identityNumber.trim() })); } catch { setError("We could not verify your details. Please check them and try again."); } finally { setBusy(false); } };
+  return <Page eyebrow="Citizen complaint registration" title="Tell us about yourself first"><form onSubmit={submit} className="mx-auto max-w-3xl border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 border-l-4 border-accent bg-muted p-4"><p className="font-bold">{category}</p><p className="mt-1 text-sm text-muted-foreground">These details are checked against the citizen profile registry before opening your dashboard.</p></div><div className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-semibold">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Mobile number<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Identity document<select value={identityType} onChange={(event) => setIdentityType(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"><option>Aadhaar</option><option>Voter ID</option><option>Driving licence</option><option>Passport</option></select></label><label className="text-sm font-semibold sm:col-span-2">Identity document number<input required value={identityNumber} onChange={(event) => setIdentityNumber(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label></div>{error && <p className="mt-5 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="mt-5 text-xs text-muted-foreground">Use your own identity information.</p><div className="mt-6 flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Verifying details..." : "Continue to citizen dashboard"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Cancel</Button></div></form></Page>;
+}
+
+function Login({ onLogin, onCancel }: { onLogin: (user: AuthUser) => void; onCancel: () => void }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<UserRole>("police");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const matchesRolePattern = (value: string, selectedRole: UserRole) => {
+    const cleanEmail = value.trim().toLowerCase();
+    if (selectedRole === "citizen") return /^[^@\s]+@gmail\.com$/.test(cleanEmail);
+    return cleanEmail === `${selectedRole}@gmail.com`;
+  };
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(null);
+    if (!matchesRolePattern(email, role)) {
+      setError(role === "citizen" ? "Citizen accounts must use a Gmail address (for example, citizen@gmail.com)." : `${role[0].toUpperCase() + role.slice(1)} accounts must use ${role}@gmail.com.`);
+      return;
+    }
+    setBusy(true);
+    try { onLogin(await api.login({ email: email.trim(), role })); }
+    catch { setError("Login was not approved. This email is not registered for the selected role."); }
+    finally { setBusy(false); }
+  };
+  return <Page eyebrow="Secure staff access" title="Police / Investigator Login"><div className="mx-auto max-w-md border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 flex gap-3"><span className="grid size-10 place-items-center bg-primary text-primary-foreground"><LockKeyhole/></span><div><h2 className="font-bold">Select your role</h2><p className="text-sm text-muted-foreground">Your email must match the selected role in the user registry.</p></div></div><form className="space-y-5" onSubmit={submit}><label className="block text-sm font-semibold">Role<select value={role} onChange={(event) => setRole(event.target.value as UserRole)} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm"><option value="police">Police</option><option value="investigator">Investigator</option></select></label><label className="block text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={`${role}@gmail.com`} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"/></label>{error && <p className="border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="text-xs leading-relaxed text-muted-foreground">Demo registry: police@gmail.com and investigator@gmail.com. Select the matching role.</p><div className="flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Checking access..." : "Login"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Back to home</Button></div></form></div></Page>;
+}
+
 function Info({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) { return <div className="border-t-4 border-primary pt-5"><div className="text-primary">{icon}</div><h2 className="mt-4 text-xl font-bold">{title}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{children}</p></div>; }
 function Page({ eyebrow, title, children, actions }: { eyebrow: string; title: string; children: ReactNode; actions?: ReactNode }) { return <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8 sm:px-6"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase text-primary">{eyebrow}</p><h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{title}</h1></div>{actions}</div>{children}</main>; }
 function Card({ title, icon, children, className="" }: { title: string; icon?: ReactNode; children: ReactNode; className?: string }) { return <section className={`border border-border bg-card civic-shadow ${className}`}><div className="flex items-center gap-2 border-b border-border px-5 py-4 font-bold">{icon && <span className="text-primary">{icon}</span>}{title}</div><div className="p-5">{children}</div></section>; }
 function Metric({ label, value, icon, note }: { label: string; value: string; icon: ReactNode; note: string }) { return <div className="border border-border bg-card p-4"><div className="flex justify-between text-primary"><span className="text-xs font-bold uppercase text-muted-foreground">{label}</span>{icon}</div><p className="mt-3 text-2xl font-extrabold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>; }
 function Risk({ risk }: { risk: string }) { const c = risk === "HIGH" ? "bg-destructive text-destructive-foreground" : risk === "MEDIUM" ? "bg-accent text-accent-foreground" : "bg-muted text-foreground"; return <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold ${c}`}><CircleDot size={11}/>{risk}</span>; }
 
-function Citizen({ go }: { go: (v: View) => void }) { return <Page eyebrow="Citizen services" title="Citizen Dashboard" actions={<Button onClick={() => go("report")}><Plus/>New Complaint</Button>}>
-  <div className="grid gap-4 sm:grid-cols-3"><Metric label="Active complaints" value="1" icon={<FileText/>} note="Currently under review"/><Metric label="Latest status" value="Analyzing" icon={<Activity/>} note="Updated 18 minutes ago"/><Metric label="Evidence files" value="4" icon={<Paperclip/>} note="Successfully attached"/></div>
+function Citizen({ go, profile }: { go: (v: View) => void; profile: CitizenProfile | null }) { const isReturning = profile?.returning_citizen; return <Page eyebrow={isReturning ? "Returning citizen verified" : "New citizen profile created"} title={profile ? `Welcome, ${profile.full_name}` : "Citizen Dashboard"} actions={<Button onClick={() => go("report")}><Plus/>Register Complaint</Button>}>
+  {profile && <div className={`mb-6 border-l-4 p-4 text-sm ${isReturning ? "border-primary bg-muted" : "border-accent bg-muted"}`}><p className="font-bold">{isReturning ? "Your profile details matched our registry." : "Your new citizen profile is ready."}</p><p className="mt-1 text-muted-foreground">{profile.email} · {profile.identity_type} ending {profile.identity_number.slice(-4)}</p></div>}
+  <div className="grid gap-4 sm:grid-cols-3"><Metric label="Active complaints" value={isReturning ? "1" : "0"} icon={<FileText/>} note={isReturning ? "Currently under review" : "Register your first complaint"}/><Metric label="Latest status" value={isReturning ? "Analyzing" : "New profile"} icon={<Activity/>} note={isReturning ? "Updated 18 minutes ago" : "Details verified for this session"}/><Metric label="Evidence files" value={isReturning ? "4" : "0"} icon={<Paperclip/>} note={isReturning ? "Successfully attached" : "Attach evidence with your complaint"}/></div>
   <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]"><Card title="Your recent complaint" icon={<FileCheck2/>}><div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs text-muted-foreground">CASE ID</p><p className="mt-1 font-bold">CASE-2026-00124</p><p className="mt-3 text-sm">UPI Fraud · ₹75,000</p><p className="text-sm text-muted-foreground">Reported from Hyderabad · 14 March 2026</p></div><Risk risk="HIGH"/></div><div className="mt-5 flex gap-3"><Button onClick={() => go("status")}>Track Status<ArrowRight/></Button><Button variant="outline" onClick={() => go("report")}>View Details</Button></div></Card><Card title="Safety guidance" icon={<ShieldCheck/>}><ul className="space-y-3 text-sm text-muted-foreground"><li>• Contact 1930 immediately for financial cyber fraud.</li><li>• Do not delete messages or transaction records.</li><li>• Never share OTP, PIN, or remote access.</li></ul></Card></div>
  </Page>; }
 

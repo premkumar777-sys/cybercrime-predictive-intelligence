@@ -51,3 +51,26 @@ class PredictionResponse(BaseModel):
     case_id: str
     risk_level: str
     predictions: List[PredictionItem]
+
+
+class LoginRequest(BaseModel):
+    email: str
+    role: str
+
+
+class LoginResponse(BaseModel):
+    email: str
+    name: str
+    role: str
+
+
+class CitizenRegistration(BaseModel):
+    full_name: str
+    phone: str
+    email: str
+    identity_type: str
+    identity_number: str
+
+
+class CitizenRegistrationResponse(CitizenRegistration):
+    returning_citizen: bool
