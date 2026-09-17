@@ -31,3 +31,18 @@ class PredictionModel(Base):
     case_id = Column(String, unique=True, index=True)
     risk_level = Column(String)
     predictions = Column(JSON) # Store list of prediction items
+
+class BlockchainAuditModel(Base):
+    __tablename__ = "blockchain_audit_blocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, index=True)
+    block_index = Column(Integer, index=True)
+    event_type = Column(String) # e.g. CASE_REGISTERED, ML_PREDICTION_GENERATED, LEA_DISPATCH_TRIGGERED
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    actor = Column(String, default="SYSTEM")
+    payload_hash = Column(String) # SHA-256 of canonical event data
+    previous_hash = Column(String) # SHA-256 of previous block
+    block_hash = Column(String, unique=True, index=True) # SHA-256 of full block header
+    event_data = Column(JSON) # Actual snapshot of recorded data for verification
+

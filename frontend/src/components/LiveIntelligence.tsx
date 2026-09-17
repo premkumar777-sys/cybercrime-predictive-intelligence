@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode, lazy, Suspense } from "react";
-import { ArrowRight, FileText, Fingerprint, MapPin, Radar, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, Fingerprint, Link as LinkIcon, Lock, MapPin, Radar, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { api, scorePercent, type ApiCase, type Location, type Prediction } from "@/lib/api";
+import { api, scorePercent, type ApiCase, type Location, type Prediction, type AuditBlock, type AuditVerification } from "@/lib/api";
 
 type Go = (view: "investigator" | "intel-report") => void;
 
@@ -15,6 +15,9 @@ export function LiveInvestigator({ caseId, go }: { caseId: string | null; go: Go
   const [caseData, setCaseData] = useState<ApiCase | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [auditTrail, setAuditTrail] = useState<AuditBlock[]>([]);
+  const [auditVerification, setAuditVerification] = useState<AuditVerification | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -23,9 +26,10 @@ export function LiveInvestigator({ caseId, go }: { caseId: string | null; go: Go
 
   useEffect(() => {
     if (!caseId) return;
-    Promise.all([api.getCase(caseId), api.listLocations()]).then(([loadedCase, loadedLocations]) => {
+    Promise.all([api.getCase(caseId), api.listLocations(), api.getAuditTrail(caseId).catch(() => [])]).then(([loadedCase, loadedLocations, loadedTrail]) => {
       setCaseData(loadedCase);
       setLocations(loadedLocations);
+      setAuditTrail(loadedTrail || []);
       return api.getPrediction(caseId).then(setPrediction).catch(() => undefined);
     }).catch(() => setError("Unable to load this case from the intelligence service."));
   }, [caseId]);
@@ -33,7 +37,30 @@ export function LiveInvestigator({ caseId, go }: { caseId: string | null; go: Go
   const analyze = async () => {
     if (!caseId) return;
     setBusy(true); setError(null);
-    try { setPrediction(await api.analyzeCase(caseId)); } catch { setError("The prediction service could not analyse this case."); } finally { setBusy(false); }
+    try {
+      const predRes = await api.analyzeCase(caseId);
+      setPrediction(predRes);
+      const updatedTrail = await api.getAuditTrail(caseId);
+      setAuditTrail(updatedTrail);
+      setAuditVerification(null);
+    } catch {
+      setError("The prediction service could not analyse this case.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyAudit = async () => {
+    if (!caseId) return;
+    setVerifying(true);
+    try {
+      const res = await api.verifyAuditTrail(caseId);
+      setAuditVerification(res);
+    } catch {
+      setError("Failed to verify blockchain audit trail.");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   if (!caseId || !caseData) return <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8 sm:px-6"><p className="text-xs font-bold uppercase text-primary">Investigator command workspace</p><h1 className="mt-1 text-3xl font-extrabold">Predictive Case Analysis</h1><p className="mt-8 text-sm text-muted-foreground">Open a case from the Police dashboard to begin analysis.</p></main>;
@@ -56,18 +83,144 @@ export function LiveInvestigator({ caseId, go }: { caseId: string | null; go: Go
     <Suspense fallback={<div className="grid h-full w-full place-items-center bg-muted text-sm text-muted-foreground">Loading GIS Engine...</div>}>
       {isClient && <LiveMap prediction={prediction} locations={locations} />}
     </Suspense>
-  <span className="absolute left-3 top-3 z-[400] bg-card px-2 py-1 text-[10px] font-bold civic-shadow">HYDERABAD · LIVE GIS</span></div><div className="mt-3 flex justify-between text-xs"><span className="font-semibold">{prediction?.predictions.length ? "Locations plotted via Leaflet" : "No locations to plot"}</span></div></Panel></div></div></main>;
+  <span className="absolute left-3 top-3 z-[400] bg-card px-2 py-1 text-[10px] font-bold civic-shadow">HYDERABAD · LIVE GIS</span></div><div className="mt-3 flex justify-between text-xs"><span className="font-semibold">{prediction?.predictions.length ? "Locations plotted via Leaflet" : "No locations to plot"}</span></div></Panel></div></div>
+  <div className="mt-6">
+    <Panel title="Immutable Blockchain Audit Trail & Evidentiary Chain (BSA Sec 63 / Sec 65B)">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <p className="text-xs text-muted-foreground">
+            Real cryptographic SHA-256 ledger chaining complaint registration, ML scoring, and enforcement dispatches.
+          </p>
+          {auditVerification?.merkle_root && (
+            <p className="mt-1 font-mono text-[11px] text-primary">
+              Merkle Root: <span className="font-bold">{auditVerification.merkle_root}</span>
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {auditVerification && (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold ${auditVerification.is_valid ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-destructive/10 text-destructive border border-destructive/20"}`}>
+              {auditVerification.is_valid ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+              {auditVerification.is_valid ? "VERIFIED TAMPER-FREE" : "TAMPER DETECTED"}
+            </span>
+          )}
+          <Button size="sm" variant="outline" onClick={verifyAudit} disabled={verifying || auditTrail.length === 0}>
+            <ShieldCheck size={14} className="mr-1 text-primary" />
+            {verifying ? "Verifying Cryptographic Chain..." : "Verify Ledger Integrity"}
+          </Button>
+        </div>
+      </div>
+
+      {auditVerification?.tamper_detected && (
+        <div className="mt-4 border-l-4 border-destructive bg-destructive/10 p-3 text-xs text-destructive">
+          <p className="font-bold">Cryptographic Discrepancy Detected:</p>
+          <ul className="mt-1 list-disc pl-4 space-y-0.5">
+            {auditVerification.blocks.filter(b => b.status === "TAMPERED").flatMap(b => b.errors).map((err, idx) => (
+              <li key={idx}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {auditVerification?.is_valid && (
+        <div className="mt-4 border-l-4 border-emerald-500 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+          <p className="font-bold">✓ Non-Repudiation & Evidentiary Integrity Certified</p>
+          <p className="mt-0.5 opacity-90">{auditVerification.compliance_note}</p>
+        </div>
+      )}
+
+      <div className="mt-5 space-y-3">
+        {auditTrail.length === 0 ? (
+          <div className="py-6 text-center text-xs text-muted-foreground">
+            No blockchain blocks synchronized yet for this case. Run analysis or register a case to generate blocks.
+          </div>
+        ) : (
+          auditTrail.map((block) => {
+            const verifiedBlock = auditVerification?.blocks.find(b => b.block_index === block.block_index);
+            const isTampered = verifiedBlock?.status === "TAMPERED";
+
+            return (
+              <div key={block.id ?? block.block_index} className={`border p-3 transition-colors ${isTampered ? "border-destructive/50 bg-destructive/5" : "border-border bg-card/60"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-6 place-items-center bg-primary text-[10px] font-extrabold text-primary-foreground">
+                      #{block.block_index}
+                    </span>
+                    <span className="font-bold text-xs tracking-wider uppercase text-primary">
+                      {block.event_type.replaceAll("_", " ")}
+                    </span>
+                    <span className="bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {block.actor}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {block.timestamp ? new Date(block.timestamp).toLocaleString() : "Just now"}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 grid gap-2 sm:grid-cols-2 text-[11px]">
+                  <div className="truncate font-mono">
+                    <span className="text-muted-foreground mr-1.5">Block Hash:</span>
+                    <span className="font-semibold text-foreground" title={block.block_hash}>
+                      {block.block_hash.slice(0, 16)}...{block.block_hash.slice(-8)}
+                    </span>
+                  </div>
+                  <div className="truncate font-mono">
+                    <span className="text-muted-foreground mr-1.5">Prev Hash:</span>
+                    <span className="text-muted-foreground" title={block.previous_hash}>
+                      {block.previous_hash.slice(0, 16)}...{block.previous_hash.slice(-8)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2 rounded bg-muted/50 p-2 font-mono text-[10px] text-muted-foreground">
+                  <span className="font-sans font-bold text-foreground mr-2">Synchronized Event Data:</span>
+                  {JSON.stringify(block.event_data)}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Panel>
+  </div>
+  </main>;
 }
 
 export function LiveIntelReport({ caseId, go }: { caseId: string | null; go: Go }) {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [auditTrail, setAuditTrail] = useState<AuditBlock[]>([]);
   const now = new Date();
   
-  useEffect(() => { if (caseId) api.getPrediction(caseId).then(setPrediction).catch(() => undefined); }, [caseId]);
+  useEffect(() => {
+    if (caseId) {
+      api.getPrediction(caseId).then(setPrediction).catch(() => undefined);
+      api.getAuditTrail(caseId).then(setAuditTrail).catch(() => undefined);
+    }
+  }, [caseId]);
   
   return <main className="mx-auto min-h-[700px] max-w-[1100px] px-4 py-8 sm:px-6"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase text-primary">Live intelligence report</p><h1 className="mt-1 text-3xl font-extrabold">{caseId ?? "No case selected"} · Investigative Brief</h1></div><Button variant="outline" onClick={() => go("investigator")}><ArrowRight />Back to analysis</Button></div><section className="border border-border bg-card p-6 civic-shadow sm:p-10"><div className="flex gap-3 border-b-2 border-secondary pb-6"><span className="grid size-12 place-items-center bg-primary text-primary-foreground"><ShieldCheck /></span><div className="flex-1"><p className="font-extrabold">Predictive Intelligence Brief</p><p className="text-xs text-muted-foreground">Generated from the connected FastAPI prediction service</p></div><div className="text-right text-[10px] text-muted-foreground"><p>Data Snapshot: {now.toLocaleTimeString()}</p><p>Model Version: RF-v1.3 Candidate Scorer</p></div></div>
   {prediction?.status === "INSUFFICIENT_DATA" ? <div className="my-8 border-l-4 border-destructive bg-destructive/10 p-5 text-sm"><p className="font-bold text-destructive">Prediction Unavailable</p><p className="mt-1 text-muted-foreground">{prediction.reason}</p></div> : 
   prediction ? <><div className="mt-7 grid gap-6 sm:grid-cols-3"><div className="border border-border p-4"><p className="text-[10px] uppercase text-muted-foreground">Risk level</p><p className="mt-2 text-xl font-extrabold">{prediction.risk_level}</p></div><div className="border border-border p-4"><p className="text-[10px] uppercase text-muted-foreground">Candidate locations</p><p className="mt-2 text-xl font-extrabold">{prediction.predictions.length}</p></div><div className="border border-border p-4"><p className="text-[10px] uppercase text-muted-foreground">Top score</p><p className="mt-2 text-xl font-extrabold">{scorePercent(prediction.predictions[0]?.risk_score ?? 0)}</p></div></div><h2 className="mt-8 border-b border-border pb-2 font-bold">Ranked candidate locations</h2><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-muted"><tr><th className="p-3">Rank</th><th>Location</th><th>Risk estimate</th><th>Likely window</th></tr></thead><tbody>{prediction.predictions.map((item) => <tr className="border-b border-border" key={item.location_id}><td className="p-3 font-bold">#{item.rank}</td><td>{item.location_name}</td><td className="text-destructive">{scorePercent(item.risk_score)}</td><td>{item.time_window}</td></tr>)}</tbody></table></div></> : <p className="py-10 text-sm text-muted-foreground">No prediction exists for this case yet. Return to analysis and run the prediction engine.</p>}
+  {auditTrail.length > 0 && (
+    <div className="mt-8 border border-border/80 bg-muted/20 p-4">
+      <div className="flex items-center gap-2 font-bold text-xs text-primary mb-2">
+        <Lock size={14} />
+        <span>Blockchain Evidentiary Chain of Custody (BSA Section 63 / Sec 65B)</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground mb-3">
+        This brief is cryptographically anchored to an immutable ledger. Every event and ML inference is hashed via SHA-256 to ensure zero post-incident tampering.
+      </p>
+      <div className="space-y-1.5 font-mono text-[10px]">
+        {auditTrail.map((b) => (
+          <div key={b.id ?? b.block_index} className="flex flex-wrap items-center justify-between gap-1 border-b border-border/40 pb-1">
+            <span className="text-foreground font-bold">Block #{b.block_index} [{b.event_type}]:</span>
+            <span className="text-muted-foreground">Hash: {b.block_hash.slice(0, 24)}... (Prev: {b.previous_hash.slice(0, 8)}...)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
   <div className="mt-10 border-t border-border pt-4 text-[10px] text-muted-foreground">DISCLAIMER: This document contains predictive intelligence intended for lead generation. Candidate location ranks are probabilistic and derived from partial transaction-hop data. Not for direct evidentiary use without field corroboration.</div>
   </section></main>;
 }

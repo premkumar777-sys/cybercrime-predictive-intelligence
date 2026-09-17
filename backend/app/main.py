@@ -6,6 +6,7 @@ from .container import predictor
 from .database import get_db, Base, engine
 from .repositories.repository import Repository
 from .services.notification_service import notifier
+from .services.blockchain_service import blockchain_service
 
 app = FastAPI(title="Cybercrime Predictive Intelligence API")
 
@@ -93,8 +94,8 @@ def analyze_case(case_id: str, db: Session = Depends(get_db)):
     pred = predictor.analyze(case, locations)
     repo.add_prediction(case_id, pred)
     
-    # Trigger SIH Alert Mock
-    notifier.trigger_alerts(case_id, pred)
+    # Trigger SIH Alert & dispatch
+    notifier.trigger_alerts(case_id, pred, db=db)
     
     return pred
 
@@ -108,8 +109,27 @@ def get_predictions(case_id: str, db: Session = Depends(get_db)):
     return pred
 
 
+@app.get("/cases/{case_id}/audit-trail")
+def get_case_audit_trail(case_id: str, db: Session = Depends(get_db)):
+    repo = Repository(db)
+    case = repo.get_case(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="case not found")
+    return blockchain_service.get_audit_trail(db, case_id)
+
+
+@app.post("/cases/{case_id}/verify-audit")
+def verify_case_audit_trail(case_id: str, db: Session = Depends(get_db)):
+    repo = Repository(db)
+    case = repo.get_case(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="case not found")
+    return blockchain_service.verify_audit_trail(db, case_id)
+
+
 @app.get("/locations")
 def list_locations(db: Session = Depends(get_db)):
     repo = Repository(db)
     locs = repo.get_locations()
     return list(locs.values())
+

@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from ..models import CaseModel, LocationModel, PredictionModel
 from ..schemas import CaseCreate
+from ..services.blockchain_service import blockchain_service
 
 class Repository:
     # Class-level dictionaries to simulate DB for new auth features
@@ -23,11 +24,20 @@ class Repository:
         case_id = f"CASE{count + 1:03d}"
         
         now = datetime.utcnow()
+        tx_time = case_data.get("transaction_time")
+        if isinstance(tx_time, str):
+            try:
+                tx_time = datetime.fromisoformat(tx_time.replace("Z", "+00:00"))
+            except Exception:
+                tx_time = now
+        elif not isinstance(tx_time, datetime):
+            tx_time = now
+
         new_case = CaseModel(
             case_id=case_id,
             fraud_type=case_data["fraud_type"],
             amount=case_data["amount"],
-            transaction_time=case_data["transaction_time"],
+            transaction_time=tx_time,
             destination_account=case_data["destination_account"],
             status="CREATED",
             created_at=now
@@ -35,6 +45,22 @@ class Repository:
         self.db.add(new_case)
         self.db.commit()
         self.db.refresh(new_case)
+
+        # Record Genesis event in real blockchain audit ledger
+        blockchain_service.record_event(
+            db=self.db,
+            case_id=new_case.case_id,
+            event_type="CASE_REGISTERED",
+            actor="CITIZEN_OR_PORTAL_REGISTRATION",
+            event_data={
+                "case_id": new_case.case_id,
+                "fraud_type": new_case.fraud_type,
+                "amount": float(new_case.amount),
+                "destination_account": new_case.destination_account,
+                "transaction_time": str(new_case.transaction_time),
+                "created_at": str(new_case.created_at)
+            }
+        )
         
         # Return dict matching expected output in main.py
         return {
@@ -95,6 +121,21 @@ class Repository:
             case.status = "ANALYZED"
         
         self.db.commit()
+
+        # Record ML prediction block in real blockchain audit ledger
+        blockchain_service.ensure_case_chained(self.db, case_id)
+        blockchain_service.record_event(
+            db=self.db,
+            case_id=case_id,
+            event_type="ML_PREDICTION_GENERATED",
+            actor="AI_ML_PREDICTION_ENGINE_RF_V1",
+            event_data={
+                "case_id": case_id,
+                "risk_level": pred_model.risk_level,
+                "prediction_count": len(prediction.get("predictions", [])),
+                "top_predictions": prediction.get("predictions", [])[:3]
+            }
+        )
 
     def get_prediction(self, case_id: str) -> dict:
         p = self.db.query(PredictionModel).filter(PredictionModel.case_id == case_id).first()

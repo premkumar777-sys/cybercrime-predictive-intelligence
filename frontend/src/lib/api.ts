@@ -61,6 +61,43 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export type AuditBlock = {
+  id: number;
+  case_id: string;
+  block_index: number;
+  event_type: string;
+  timestamp: string | null;
+  actor: string;
+  payload_hash: string;
+  previous_hash: string;
+  block_hash: string;
+  event_data: Record<string, any>;
+};
+
+export type BlockVerificationDetail = {
+  block_index: number;
+  event_type: string;
+  timestamp: string;
+  actor: string;
+  block_hash: string;
+  previous_hash: string;
+  payload_hash: string;
+  status: "VALID" | "TAMPERED";
+  errors: string[];
+};
+
+export type AuditVerification = {
+  case_id: string;
+  is_valid: boolean;
+  tamper_detected: boolean;
+  chain_length: number;
+  merkle_root: string | null;
+  tamper_status: string;
+  compliance_note: string;
+  verified_at: string;
+  blocks: BlockVerificationDetail[];
+};
+
 export const api = {
   registerCitizen: (payload: Omit<CitizenProfile, "returning_citizen">) =>
     request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
@@ -73,6 +110,10 @@ export const api = {
   listLocations: () => request<Location[]>("/locations"),
   createCase: (payload: { fraud_type: string; amount: number; transaction_time: string; destination_account: string }) =>
     request<{ case_id: string; status: string }>("/cases", { method: "POST", body: JSON.stringify(payload) }),
+  getAuditTrail: (caseId: string) =>
+    request<AuditBlock[]>(`/cases/${encodeURIComponent(caseId)}/audit-trail`),
+  verifyAuditTrail: (caseId: string) =>
+    request<AuditVerification>(`/cases/${encodeURIComponent(caseId)}/verify-audit`, { method: "POST" }),
 };
 
 export function formatCase(apiCase: ApiCase) {
