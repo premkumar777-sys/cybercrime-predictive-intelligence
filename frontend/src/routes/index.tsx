@@ -121,7 +121,7 @@ function App() {
       {view === "track" && <TrackApplication onView={(complaintId) => { setSelectedCitizenComplaint(complaintId); go("status"); }} onBack={() => go("landing")} />}
       {view === "police" && <PoliceDashboard onSelectInvestigatorCase={(caseId) => { setActiveCaseId(caseId); go("investigator"); }} />}
       {view === "case" && <PoliceDashboard onSelectInvestigatorCase={(caseId) => { setActiveCaseId(caseId); go("investigator"); }} />}
-      {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId} />}
+      {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId} onCaseChange={setActiveCaseId} />}
       {view === "intel-report" && <LiveIntelReport go={go} caseId={activeCaseId} />}
       <footer className="border-t border-border bg-secondary px-4 py-5 text-secondary-foreground">
         <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-2 text-xs sm:flex-row"><span>© 2026 SIH</span></div>
@@ -178,16 +178,16 @@ function Landing({ go, onRegister, onTrack }: { go: (v: View) => void; onRegiste
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex items-center gap-1.5 bg-sky-950/80 border border-sky-600/40 px-3 py-1 text-[11px] font-bold tracking-wider uppercase text-sky-300 rounded-xs">
                 <ShieldCheck size={14} className="text-sky-400" />
-                National Cyber Crime Reporting Portal · Telangana Unit
-              </span>
-              <span className="bg-amber-400/20 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 text-[11px] font-semibold rounded-xs">
-                I4C · Cyber Dost Integrated
+                National Cyber Crime Reporting Portal.
               </span>
             </div>
 
             <div className="space-y-2">
               <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
                 ఆధునిక సాంకేతిక పరిజ్ఞానంతో సైబర్ భద్రత · సైబర్ స్వచ్ఛత పాటించండి
+              </p>
+              <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
+                ऑनलाइन साइबर अपराध और वित्तीय धोखाधड़ी की सुरक्षित रूप से रिपोर्ट करें
               </p>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-snug tracking-tight text-white">
                 Report Online Cyber Crime & Financial Fraud Securely
@@ -221,7 +221,10 @@ function Landing({ go, onRegister, onTrack }: { go: (v: View) => void; onRegiste
                 24x7 Citizen Helpline
               </div>
               <p className="text-xs font-semibold text-sky-200 mt-1">
-                ఆన్‌లైన్ ఆర్థిక మోసాలను రిపోర్ట్ చేయడానికి
+                ఆర్థిక మోసాల గురించి ఫిర్యాదు చేయడానికి కాల్ చేయండి
+              </p>
+              <p className="text-xs font-semibold text-sky-200 mt-1">
+                वित्तीय धोखाधड़ी की रिपोर्ट करने के लिए कॉल करें
               </p>
               <p className="text-[11px] text-sky-300">
                 To Report Financial Fraud Call

@@ -55,6 +55,8 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
   const [statusFilter, setStatusFilter] = useState("All");
   const [crimeTypeFilter, setCrimeTypeFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
+  const [stationFilter, setStationFilter] = useState("All");
+  const [syncing, setSyncing] = useState(false);
 
   const loadData = async () => {
     try {
@@ -81,15 +83,29 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
     }
   };
 
+  const handleSyncBackend = async () => {
+    setSyncing(true);
+    await policeService.syncWithBackend();
+    await loadData();
+    setSyncing(false);
+  };
+
   useEffect(() => {
     loadData();
+    // Auto-sync with live FastAPI backend periodically
+    const interval = setInterval(() => {
+      policeService.syncWithBackend();
+    }, 8000);
     const unsubscribe = policeService.subscribe(() => {
       policeService.getComplaints().then(setComplaints);
       policeService.getDashboardStats().then(setStats);
       policeService.getPriorityAlerts().then(setAlerts);
       policeService.getRecentActivities().then(setActivities);
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   // Filtered complaints calculation
@@ -103,7 +119,8 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
         const matchesArea = c.location.area.toLowerCase().includes(q);
         const matchesCitizen = c.citizen.name.toLowerCase().includes(q);
         const matchesTxn = c.transactionRef.toLowerCase().includes(q);
-        if (!matchesAck && !matchesType && !matchesDesc && !matchesArea && !matchesCitizen && !matchesTxn) {
+        const matchesCaseId = c.liveCaseId?.toLowerCase().includes(q);
+        if (!matchesAck && !matchesType && !matchesDesc && !matchesArea && !matchesCitizen && !matchesTxn && !matchesCaseId) {
           return false;
         }
       }
@@ -120,9 +137,13 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
         return false;
       }
 
+      if (stationFilter !== "All" && !c.policeStation.toLowerCase().includes(stationFilter.toLowerCase())) {
+        return false;
+      }
+
       return true;
     });
-  }, [complaints, searchQuery, statusFilter, crimeTypeFilter, priorityFilter]);
+  }, [complaints, searchQuery, statusFilter, crimeTypeFilter, priorityFilter, stationFilter]);
 
   const handleOpenDetail = (complaintId: string) => {
     const found = complaints.find((c) => c.id === complaintId || c.acknowledgementNumber === complaintId);
@@ -218,6 +239,17 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSyncBackend}
+            disabled={syncing}
+            className="h-8 text-xs font-medium gap-1.5 border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            title="Fetch real-time cases from backend"
+          >
+            <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Syncing..." : "Sync Live Cases"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -398,7 +430,7 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
           </div>
 
           {/* Compact Clean Filter Toolbar */}
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
             {/* Search Input */}
             <div className="sm:col-span-2 relative">
               <Search className="absolute left-2.5 top-2.5 text-muted-foreground" size={14} />
@@ -406,9 +438,26 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search complaints by Ack No, type, victim..."
+                placeholder="Search complaints by Ack No, Case ID, type, victim..."
                 className="h-9 w-full border border-input bg-background pl-8 pr-3 text-xs outline-none focus:ring-1 focus:ring-ring"
               />
+            </div>
+
+            {/* Station Filter */}
+            <div>
+              <select
+                value={stationFilter}
+                onChange={(e) => setStationFilter(e.target.value)}
+                className="h-9 w-full border border-input bg-background px-2 text-xs font-medium text-foreground"
+                title="Filter by nearby Police Station"
+              >
+                <option value="All">All Police Stations</option>
+                <option value="Medchal">Medchal Police Station</option>
+                <option value="Cyber Crime">Cyber Crime PS, Hyd</option>
+                <option value="Madhapur">Madhapur PS</option>
+                <option value="Kukatpally">Kukatpally PS</option>
+                <option value="Malkajgiri">Malkajgiri PS</option>
+              </select>
             </div>
 
             {/* Status Filter */}
@@ -469,16 +518,17 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
         {/* Complaints Table */}
         <div className="overflow-x-auto">
           {filteredComplaints.length > 0 ? (
-            <table className="w-full min-w-[760px] text-left text-xs">
+            <table className="w-full min-w-[800px] text-left text-xs">
               <thead className="border-b border-border bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase">
                 <tr>
                   <th className="p-3">Acknowledgement No.</th>
                   <th>Type</th>
+                  <th>Station</th>
                   <th>Reported</th>
                   <th>Amount</th>
                   <th>Status</th>
                   <th>Priority</th>
-                  <th className="p-3 text-right">Action</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -488,19 +538,29 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
                     className="hover:bg-muted/20 transition-colors"
                   >
                     <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDetail(c.id)}
-                        className="font-bold text-primary hover:underline text-xs"
-                      >
-                        {c.acknowledgementNumber}
-                      </button>
-                      <div className="text-[11px] text-muted-foreground">
-                        {c.location.area}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetail(c.id)}
+                          className="font-bold text-primary hover:underline text-xs"
+                        >
+                          {c.acknowledgementNumber}
+                        </button>
+                        {c.liveCaseId && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-xs border border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[9px] font-extrabold tracking-tight" title={`FastAPI Backend Case Reference: ${c.liveCaseId}`}>
+                            LIVE {c.liveCaseId}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {c.citizen.name} · {c.location.area}
                       </div>
                     </td>
                     <td className="font-medium text-foreground">
                       {c.fraudType}
+                    </td>
+                    <td className="text-muted-foreground text-xs">
+                      {c.policeStation}
                     </td>
                     <td className="text-muted-foreground text-xs">
                       {c.reportedDate}
@@ -519,14 +579,26 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
                       </span>
                     </td>
                     <td className="p-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenDetail(c.id)}
-                        className="h-7 text-xs font-medium"
-                      >
-                        View
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenDetail(c.id)}
+                          className="h-7 text-xs font-medium"
+                        >
+                          View
+                        </Button>
+                        {onSelectInvestigatorCase && (
+                          <Button
+                            size="sm"
+                            onClick={() => onSelectInvestigatorCase(c.liveCaseId || c.id)}
+                            className="h-7 text-[11px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-1 px-2"
+                            title="Open in Investigator Command Workspace for predictive ML analysis"
+                          >
+                            Investigate <ChevronRight size={11} />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

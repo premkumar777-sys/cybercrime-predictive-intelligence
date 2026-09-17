@@ -69,6 +69,7 @@ export type PoliceComplaint = {
   transactionRef: string;
   bankOrWallet: string;
   destinationAccount?: string;
+  liveCaseId?: string;
   status: ComplaintStatus;
   priority: ComplaintPriority;
   priorityReason?: string;
