@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Activity, AlertTriangle, ArrowRight, BadgeIndianRupee, BarChart3, Bell,
-  Building2, CheckCircle2, ChevronRight, CircleDot, Clock3, Download,
+  BookOpen, Building2, CheckCircle2, ChevronRight, CircleDot, Clock3, Download,
   FileCheck2, FileText, Fingerprint, Home, Landmark, Link2, LocateFixed,
   LockKeyhole, Map, MapPin, Menu, Network, Paperclip, Plus, Radar, ReceiptIndianRupee,
   Search, ShieldCheck, Siren, UploadCloud, UserRound, UsersRound, X,
@@ -10,9 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { api, formatCase, scorePercent, type ApiCase, type AuthUser, type CitizenProfile, type Location, type Prediction, type UserRole } from "@/lib/api";
 import { LiveIntelReport, LiveInvestigator } from "@/components/LiveIntelligence";
-import { LiveStatus } from "@/components/LiveStatus";
+import { CitizenComplaintDetails, CitizenDashboard, citizenComplaints, type CitizenComplaint } from "@/components/CitizenDashboard";
+import { ComplaintWizard } from "@/components/ComplaintWizard";
+import { PoliceDashboard } from "@/components/police/PoliceDashboard";
 
-type View = "landing" | "login" | "citizen-register" | "citizen" | "report" | "status" | "police" | "case" | "investigator" | "intel-report";
+type View = "landing" | "login" | "citizen-register" | "citizen" | "report" | "status" | "track" | "police" | "case" | "investigator" | "intel-report";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
@@ -45,6 +47,8 @@ function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [complaintCategory, setComplaintCategory] = useState("Financial fraud");
   const [citizenProfile, setCitizenProfile] = useState<CitizenProfile | null>(null);
+  const [selectedCitizenComplaint, setSelectedCitizenComplaint] = useState("NCRP-TG-2026-001245");
+  const [citizenComplaintRecords, setCitizenComplaintRecords] = useState<CitizenComplaint[]>(citizenComplaints);
   const [liveCases, setLiveCases] = useState<ApiCase[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   useEffect(() => { api.listCases().then(setLiveCases).catch(() => setLiveCases([])); }, []);
@@ -66,6 +70,16 @@ function App() {
         <div className="bg-secondary text-secondary-foreground">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-1.5 text-[10px] sm:px-6">
             <span className="hidden sm:block">English · తెలుగు</span>
+            {user?.role === "police" && (
+              <span className="font-semibold text-sky-200">
+                Logged in: Medchal Police Station · Medchal-Malkajgiri District
+              </span>
+            )}
+            {user?.role === "investigator" && (
+              <span className="font-semibold text-emerald-200">
+                Investigator Command Unit · State Cyber Crime CID
+              </span>
+            )}
           </div>
         </div>
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center gap-3 px-4 sm:px-6">
@@ -74,24 +88,35 @@ function App() {
             <div className="truncate text-xs font-semibold text-primary sm:text-sm">తెలంగాణ సైబర్ క్రైమ్ ప్రిడిక్టివ్ ఇంటెలిజెన్స్</div>
             <div className="truncate text-sm font-extrabold sm:text-lg">Telangana Cybercrime Predictive Intelligence Platform</div>
           </div>
+          {user?.role === "police" && (
+            <div className="hidden xl:flex items-center gap-2 border-l border-border pl-3 ml-2">
+              <span className="bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-bold uppercase">
+                Police Station Portal
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Inspector V. Raghunath (SHO)
+              </span>
+            </div>
+          )}
           <button className="ml-auto p-2 lg:hidden" aria-label="Toggle navigation" onClick={() => setMobile(!mobile)}>{mobile ? <X/> : <Menu/>}</button>
           <nav className="ml-auto hidden items-center gap-1 lg:flex">
             <NavButton active={view === "landing"} onClick={() => go("landing")} icon={<Home/>}>Home</NavButton>
-            {user ? <><NavButton active={view !== "landing"} onClick={() => go(user.role)} icon={<UserRound/>}>Dashboard</NavButton><Button variant="outline" onClick={logout}>Logout</Button></> : <Button onClick={() => go("login")}><LockKeyhole/>Login</Button>}
+            {user ? <><NavButton active={view !== "landing"} onClick={() => go(user.role)} icon={<UserRound/>}>{user.role === "police" ? "Police Dashboard" : "Dashboard"}</NavButton><Button variant="outline" onClick={logout}>Logout</Button></> : <Button onClick={() => go("login")}><LockKeyhole/>Login</Button>}
           </nav>
         </div>
         {mobile && <nav className="grid grid-cols-2 gap-2 border-t border-border bg-card p-3 lg:hidden">
           <Button variant="outline" onClick={() => go("landing")}>Home</Button>{user ? <><Button variant="outline" onClick={() => go(user.role)}>Dashboard</Button><Button className="col-span-2" variant="outline" onClick={logout}>Logout</Button></> : <Button onClick={() => go("login")}>Staff Login</Button>}
         </nav>}
       </header>
-      {view === "landing" && <Landing go={go} onRegister={(category) => { setComplaintCategory(category); go("citizen-register"); }}/>} 
+      {view === "landing" && <Landing go={go} onRegister={(category) => { setComplaintCategory(category); go("citizen-register"); }} onTrack={() => go("track")}/>} 
       {view === "login" && <Login onLogin={handleLogin} onCancel={() => go("landing")}/>} 
       {view === "citizen-register" && <CitizenRegistration category={complaintCategory} onComplete={(profile) => { setCitizenProfile(profile); go("citizen"); }} onCancel={() => go("landing")}/>} 
-      {view === "citizen" && <Citizen go={go} profile={citizenProfile}/>} 
-      {view === "report" && <ReportForm go={go} onCreated={(caseId) => { setActiveCaseId(caseId); api.listCases().then(setLiveCases).catch(() => undefined); }}/>} 
-      {view === "status" && <LiveStatus go={go} caseId={activeCaseId}/>} 
-      {view === "police" && <Police go={go} liveCases={liveCases} onSelect={(caseId) => { setActiveCaseId(caseId); go("case"); }}/>} 
-      {view === "case" && <CaseDetail go={go} caseId={activeCaseId}/>} 
+      {view === "citizen" && <CitizenDashboard profile={citizenProfile} complaints={citizenComplaintRecords} onRegister={() => go("report")} onViewComplaint={(complaintId) => { setSelectedCitizenComplaint(complaintId); go("status"); }}/>} 
+      {view === "report" && <ComplaintWizard profile={citizenProfile} onCancel={() => go("citizen")} onSubmitted={(complaint) => { setCitizenComplaintRecords((current) => [complaint, ...current.filter((item) => item.id !== complaint.id)]); setSelectedCitizenComplaint(complaint.id); }} onTrack={() => go("status")}/>} 
+      {view === "status" && <CitizenComplaintDetails complaints={citizenComplaintRecords} complaintId={selectedCitizenComplaint} onBack={() => go("citizen")} onRegister={() => go("report")} />} 
+      {view === "track" && <TrackApplication onView={(complaintId) => { setSelectedCitizenComplaint(complaintId); go("status"); }} onBack={() => go("landing")} />} 
+      {view === "police" && <PoliceDashboard onSelectInvestigatorCase={(caseId) => { setActiveCaseId(caseId); go("investigator"); }}/>} 
+      {view === "case" && <PoliceDashboard onSelectInvestigatorCase={(caseId) => { setActiveCaseId(caseId); go("investigator"); }}/>} 
       {view === "investigator" && <LiveInvestigator go={go} caseId={activeCaseId}/>} 
       {view === "intel-report" && <LiveIntelReport go={go} caseId={activeCaseId}/>} 
       <footer className="border-t border-border bg-secondary px-4 py-5 text-secondary-foreground">
@@ -105,27 +130,199 @@ function NavButton({ children, icon, active, onClick }: { children: ReactNode; i
   return <Button variant={active ? "default" : "ghost"} onClick={onClick} className="h-10">{icon}{children}</Button>;
 }
 
-function Landing({ go, onRegister }: { go: (v: View) => void; onRegister: (category: string) => void }) {
+function Landing({ go, onRegister, onTrack }: { go: (v: View) => void; onRegister: (category: string) => void; onTrack: () => void }) {
   const steps = ["Complaint","Transaction Intelligence","Analysis","Geospatial Intelligence","Location Ranking","Actionable Intelligence"];
   return <main>
-    <section className="border-b border-border bg-card">
-      <div className="mx-auto max-w-[1440px] px-4 py-14 sm:px-6">
-        <div>
-          <div className="mb-5 inline-flex items-center gap-2 border-l-4 border-accent bg-muted px-3 py-2 text-xs font-bold uppercase text-secondary"><Radar size={16}/> Predictive Cybercrime Intelligence</div>
-          <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.12] sm:text-5xl lg:text-6xl">From cybercrime complaints to proactive, location-based investigative intelligence.</h1>
-          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground">Register a complaint without signing in. Police and investigators can use the secure staff login for their workspaces.</p>
+    {/* Official Sub-Navigation Bar (Portal Style) */}
+    <div className="bg-[#0070ba] text-white border-b border-[#005a96]">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 text-xs font-semibold overflow-x-auto sm:px-6">
+        <div className="flex items-center space-x-1 py-1.5 whitespace-nowrap">
+          <button onClick={() => go("landing")} className="bg-sky-900/60 px-3 py-1.5 rounded-xs flex items-center gap-1.5 hover:bg-sky-900">
+            <Home size={14}/> Home
+          </button>
+          <button onClick={() => onRegister("Financial fraud")} className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1">
+            Register a Complaint +
+          </button>
+          <button onClick={onTrack} className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1">
+            Track your Complaint
+          </button>
+          <button onClick={() => onRegister("Other cybercrime")} className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1">
+            Report & Check Suspect +
+          </button>
+          <a href="#safety-measures" className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1">
+            Learning Corner & Safety +
+          </a>
+          <button onClick={() => go("login")} className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1">
+            Staff Portal Login
+          </button>
         </div>
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">{[
-          { title: "Women & children related crime", category: "Women and children related crime", image: "/complaint-cards/safety-support.png", description: "Get support and submit a protected report." },
-          { title: "Financial fraud", category: "Financial fraud", image: "/complaint-cards/financial-fraud.png", description: "Report UPI, card, banking, or investment fraud." },
-          { title: "Other cybercrime", category: "Other cybercrime", image: "/complaint-cards/cyber-safety.png", description: "Report impersonation, account misuse, and more." },
-        ].map((card) => <article className="overflow-hidden rounded-xl border border-primary/30 bg-card shadow-lg" key={card.category}><img src={card.image} alt="" className="h-52 w-full object-cover"/><div className="bg-gradient-to-br from-slate-800 to-primary p-6 text-primary-foreground"><h2 className="text-xl font-extrabold uppercase">{card.title}</h2><p className="mt-2 min-h-10 text-sm text-primary-foreground/80">{card.description}</p><Button className="mt-5 bg-cyan-500 text-white hover:bg-cyan-400" onClick={() => onRegister(card.category)}>Register a complaint<ArrowRight/></Button></div></article>)}</div>
+        <div className="hidden lg:flex items-center gap-2 text-[11px] py-1">
+          <span className="bg-amber-400 text-slate-950 px-2 py-0.5 font-extrabold rounded-xs">
+            Helpline: 1930
+          </span>
+          <span>Toll Free 24x7</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Official Government Hero Banner (I4C / Cyber Crime Portal Style) */}
+    <section className="relative overflow-hidden bg-gradient-to-r from-[#031b3b] via-[#072a5a] to-[#041d40] text-white border-b border-border shadow-md">
+      <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+      
+      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:py-10">
+        <div className="grid gap-8 lg:grid-cols-12 items-center">
+          
+          {/* Left Column: Official Seals & Core National / State Message */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex items-center gap-1.5 bg-sky-950/80 border border-sky-600/40 px-3 py-1 text-[11px] font-bold tracking-wider uppercase text-sky-300 rounded-xs">
+                <ShieldCheck size={14} className="text-sky-400" />
+                National Cyber Crime Reporting Portal · Telangana Unit
+              </span>
+              <span className="bg-amber-400/20 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 text-[11px] font-semibold rounded-xs">
+                I4C · Cyber Dost Integrated
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
+                ఆధునిక సాంకేతిక పరిజ్ఞానంతో సైబర్ భద్రత · సైబర్ స్వచ్ఛత పాటించండి
+              </p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-snug tracking-tight text-white">
+                Report Online Cyber Crime & Financial Fraud Securely
+              </h1>
+              <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed max-w-2xl">
+                File cybercrime complaints directly without signing in. Authorized police and intelligence officers can access the secure operational portal.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-wrap gap-3">
+              <Button 
+                onClick={() => onRegister("Financial fraud")}
+                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 h-10 shadow-md gap-1.5"
+              >
+                Register a Complaint <ArrowRight size={15} />
+              </Button>
+              <Button 
+                onClick={onTrack}
+                variant="outline"
+                className="border-sky-300/40 bg-sky-950/60 text-white hover:bg-sky-900 font-semibold px-5 h-10 gap-1.5"
+              >
+                <Search size={15} /> Track Application
+              </Button>
+            </div>
+          </div>
+
+          {/* Right Column: 1930 Emergency Helpline Badge (Screenshot Matching Style) */}
+          <div className="lg:col-span-4 flex justify-center lg:justify-end">
+            <div className="w-full max-w-sm rounded-full border-4 border-sky-400/40 bg-gradient-to-b from-[#0a3568] to-[#041d40] p-6 text-center shadow-2xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full shadow-sm">
+                24x7 Citizen Helpline
+              </div>
+              <p className="text-xs font-semibold text-sky-200 mt-1">
+                ఆన్‌లైన్ ఆర్థిక మోసాలను రిపోర్ట్ చేయడానికి
+              </p>
+              <p className="text-[11px] text-sky-300">
+                To Report Financial Fraud Call
+              </p>
+              <div className="my-2 py-1">
+                <span className="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-md">
+                  1930
+                </span>
+              </div>
+              <p className="text-xs font-bold text-cyan-300">
+                cybercrime.gov.in
+              </p>
+              <p className="text-[10px] text-sky-200/80 mt-1">
+                National Cyber Crime Helpline · Golden Hour Response
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    {/* Complaint Categories Section */}
+    <section className="border-b border-border bg-card">
+      <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {[
+            { title: "Women & children related crime", category: "Women and children related crime", image: "/complaint-cards/safety-support.png", description: "Get support and submit a protected report." },
+            { title: "Financial fraud", category: "Financial fraud", image: "/complaint-cards/financial-fraud.png", description: "Report UPI, card, banking, or investment fraud." },
+            { title: "Other cybercrime", category: "Other cybercrime", image: "/complaint-cards/cyber-safety.png", description: "Report impersonation, account misuse, and more." },
+          ].map((card) => (
+            <article className="overflow-hidden rounded-xl border border-primary/30 bg-card shadow-lg" key={card.category}>
+              <img src={card.image} alt="" className="h-52 w-full object-cover"/>
+              <div className="bg-gradient-to-br from-slate-800 to-primary p-6 text-primary-foreground">
+                <h2 className="text-xl font-extrabold uppercase">{card.title}</h2>
+                <p className="mt-2 min-h-10 text-sm text-primary-foreground/80">{card.description}</p>
+                <Button className="mt-5 bg-cyan-500 text-white hover:bg-cyan-400" onClick={() => onRegister(card.category)}>
+                  Register a complaint<ArrowRight/>
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
     <section className="bg-primary py-8 text-primary-foreground"><div className="mx-auto max-w-[1440px] px-4 sm:px-6"><p className="mb-5 text-center text-xs font-bold uppercase">Complaint-to-action workflow</p><div className="grid gap-px bg-primary-foreground/20 sm:grid-cols-3 lg:grid-cols-6">{steps.map((s,i)=><div className="bg-primary p-4" key={s}><span className="text-xs opacity-70">0{i+1}</span><p className="mt-4 text-sm font-semibold">{s}</p></div>)}</div></div></section>
-    <section className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6"><div className="grid gap-10 lg:grid-cols-3"><Info title="Why this platform?" icon={<ShieldCheck/>}>Transforms fragmented complaint and transaction details into a consistent, explainable investigative picture.</Info><Info title="How it works" icon={<Activity/>}>Fictional rules connect complaint signals, transaction patterns, relationships, time windows, and likely cash-out areas.</Info><Info title="Key capabilities" icon={<LocateFixed/>}>Case triage, timelines, network context, ranked candidate locations, map intelligence, and downloadable reports.</Info></div></section>
+    <section className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6">
+      {/* Cyber Safety Advisory Measures & Learning Corner */}
+      <div className="border border-border bg-card p-6 civic-shadow">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <BookOpen className="text-primary" size={20} />
+          <h2 className="text-lg font-extrabold text-foreground">Cyber Safety Measures & Citizen Learning Corner</h2>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="border border-border bg-muted/30 p-4">
+            <p className="text-xs font-bold uppercase text-primary">1. UPI & QR Code Caution</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              UPI PIN is strictly used to <strong>pay / debit</strong> money from your bank account. You never need to enter your PIN or scan a QR code to receive a refund, reward, or lottery.
+            </p>
+          </div>
+          <div className="border border-border bg-muted/30 p-4">
+            <p className="text-xs font-bold uppercase text-primary">2. No Remote Control Apps</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Never install remote desktop apps (AnyDesk, TeamViewer, RustDesk) or third-party APKs sent via SMS/WhatsApp claiming electricity bill or KYC verification.
+            </p>
+          </div>
+          <div className="border border-border bg-muted/30 p-4">
+            <p className="text-xs font-bold uppercase text-primary">3. Golden Hour & Helpline 1930</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              If fraud occurs, dial the <strong>National Cyber Crime Helpline 1930</strong> immediately. Reporting within the first 2 hours enables nodal officers to freeze stolen funds in destination accounts.
+            </p>
+          </div>
+          <div className="border border-border bg-muted/30 p-4">
+            <p className="text-xs font-bold uppercase text-primary">4. Investment & Task Scams</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Beware of Telegram/WhatsApp groups offering guaranteed 400% stock returns, pre-IPO allotments, or part-time Google Map review tasks requiring upfront deposits.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
     <section className="border-y border-border bg-card"><div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6"><div className="flex gap-4 border-l-4 border-accent bg-muted p-5"><AlertTriangle className="shrink-0 text-accent"/><div><h2 className="font-bold">Important prediction disclaimer</h2><p className="mt-1 text-sm leading-relaxed text-muted-foreground">All locations, scores, timelines, and insights shown are fictional, illustrative likelihood estimates. They do not constitute official intelligence, legal evidence, or guaranteed future outcomes.</p></div></div></div></section>
   </main>;
+}
+
+function TrackApplication({ onView, onBack }: { onView: (complaintId: string) => void; onBack: () => void }) {
+  const [acknowledgementNumber, setAcknowledgementNumber] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = acknowledgementNumber.trim().toLowerCase();
+    const complaint = citizenComplaints.find((item) => item.id.toLowerCase() === value);
+    if (!complaint) {
+      setError("We could not find an application with that acknowledgement number.");
+      return;
+    }
+    setError(null);
+    onView(complaint.id);
+  };
+
+  return <Page eyebrow="Citizen services" title="Track your application" actions={<Button variant="outline" onClick={onBack}>Back to home</Button>}><div className="mx-auto max-w-2xl border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 flex gap-3 border-l-4 border-accent bg-muted p-4"><Search className="shrink-0 text-primary"/><div><h2 className="font-bold">Find your complaint status</h2><p className="mt-1 text-sm text-muted-foreground">Enter the acknowledgement number shown when your complaint was registered.</p></div></div><form onSubmit={submit} className="space-y-5"><label className="block text-sm font-semibold">Acknowledgement number<input required value={acknowledgementNumber} onChange={(event) => { setAcknowledgementNumber(event.target.value); setError(null); }} placeholder="Example: NCRP-TG-2026-001245" className="mt-2 h-11 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"/></label>{error && <p className="border-l-4 border-destructive bg-muted p-3 text-sm text-destructive" role="alert">{error}</p>}<Button type="submit">View application status<ArrowRight/></Button></form></div></Page>;
 }
 
 function CitizenRegistration({ category, onComplete, onCancel }: { category: string; onComplete: (profile: CitizenProfile) => void; onCancel: () => void }) {
@@ -164,12 +361,6 @@ function Page({ eyebrow, title, children, actions }: { eyebrow: string; title: s
 function Card({ title, icon, children, className="" }: { title: string; icon?: ReactNode; children: ReactNode; className?: string }) { return <section className={`border border-border bg-card civic-shadow ${className}`}><div className="flex items-center gap-2 border-b border-border px-5 py-4 font-bold">{icon && <span className="text-primary">{icon}</span>}{title}</div><div className="p-5">{children}</div></section>; }
 function Metric({ label, value, icon, note }: { label: string; value: string; icon: ReactNode; note: string }) { return <div className="border border-border bg-card p-4"><div className="flex justify-between text-primary"><span className="text-xs font-bold uppercase text-muted-foreground">{label}</span>{icon}</div><p className="mt-3 text-2xl font-extrabold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>; }
 function Risk({ risk }: { risk: string }) { const c = risk === "HIGH" ? "bg-destructive text-destructive-foreground" : risk === "MEDIUM" ? "bg-accent text-accent-foreground" : "bg-muted text-foreground"; return <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold ${c}`}><CircleDot size={11}/>{risk}</span>; }
-
-function Citizen({ go, profile }: { go: (v: View) => void; profile: CitizenProfile | null }) { const isReturning = profile?.returning_citizen; return <Page eyebrow={isReturning ? "Returning citizen verified" : "New citizen profile created"} title={profile ? `Welcome, ${profile.full_name}` : "Citizen Dashboard"} actions={<Button onClick={() => go("report")}><Plus/>Register Complaint</Button>}>
-  {profile && <div className={`mb-6 border-l-4 p-4 text-sm ${isReturning ? "border-primary bg-muted" : "border-accent bg-muted"}`}><p className="font-bold">{isReturning ? "Your profile details matched our registry." : "Your new citizen profile is ready."}</p><p className="mt-1 text-muted-foreground">{profile.email} · {profile.identity_type} ending {profile.identity_number.slice(-4)}</p></div>}
-  <div className="grid gap-4 sm:grid-cols-3"><Metric label="Active complaints" value={isReturning ? "1" : "0"} icon={<FileText/>} note={isReturning ? "Currently under review" : "Register your first complaint"}/><Metric label="Latest status" value={isReturning ? "Analyzing" : "New profile"} icon={<Activity/>} note={isReturning ? "Updated 18 minutes ago" : "Details verified for this session"}/><Metric label="Evidence files" value={isReturning ? "4" : "0"} icon={<Paperclip/>} note={isReturning ? "Successfully attached" : "Attach evidence with your complaint"}/></div>
-  <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]"><Card title="Your recent complaint" icon={<FileCheck2/>}><div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs text-muted-foreground">CASE ID</p><p className="mt-1 font-bold">CASE-2026-00124</p><p className="mt-3 text-sm">UPI Fraud · ₹75,000</p><p className="text-sm text-muted-foreground">Reported from Hyderabad · 14 March 2026</p></div><Risk risk="HIGH"/></div><div className="mt-5 flex gap-3"><Button onClick={() => go("status")}>Track Status<ArrowRight/></Button><Button variant="outline" onClick={() => go("report")}>View Details</Button></div></Card><Card title="Safety guidance" icon={<ShieldCheck/>}><ul className="space-y-3 text-sm text-muted-foreground"><li>• Contact 1930 immediately for financial cyber fraud.</li><li>• Do not delete messages or transaction records.</li><li>• Never share OTP, PIN, or remote access.</li></ul></Card></div>
- </Page>; }
 
 function ReportForm({ go, onCreated }: { go: (v: View) => void; onCreated: (caseId: string) => void }) {
  const [submitted,setSubmitted]=useState<string | null>(null); const [error,setError]=useState<string | null>(null); const [amount,setAmount]=useState("75000"); const [destination,setDestination]=useState("ACC-DEMO"); const [busy,setBusy]=useState(false);

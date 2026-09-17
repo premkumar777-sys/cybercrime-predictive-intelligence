@@ -1,36 +1,29 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CheckCircle2, Clock3, LoaderCircle, MapPin, Radar, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, LoaderCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { api, scorePercent, type ApiCase, type Location, type Prediction } from "@/lib/api";
+import { api, type ApiCase, type Prediction } from "@/lib/api";
 
 type Go = (view: "citizen") => void;
 
 export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
   const [caseData, setCaseData] = useState<ApiCase | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [analysing, setAnalysing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loadAnalysis = async (selectedCaseId: string) => {
     setLoading(true);
-    setError(null);
     try {
-      const [loadedCase, loadedLocations] = await Promise.all([
-        api.getCase(selectedCaseId),
-        api.listLocations(),
-      ]);
+      const loadedCase = await api.getCase(selectedCaseId);
       setCaseData(loadedCase);
-      setLocations(loadedLocations);
       try {
         setPrediction(await api.getPrediction(selectedCaseId));
       } catch {
         setAnalysing(true);
         setPrediction(await api.analyzeCase(selectedCaseId));
       }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load complaint analysis.");
+    } catch {
+      setPrediction(null);
     } finally {
       setLoading(false);
       setAnalysing(false);
@@ -63,13 +56,12 @@ export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
         <div className="border border-border bg-card p-10 text-center civic-shadow">
           <LoaderCircle className="mx-auto animate-spin text-primary" />
           <p className="mt-4 text-xs font-bold uppercase text-primary">Live intelligence preview</p>
-          <p className="mt-2 text-sm text-muted-foreground">Analysing your submitted complaint and identifying nearby candidate locations...</p>
+          <p className="mt-2 text-sm text-muted-foreground">Checking the latest status of your submitted complaint...</p>
         </div>
       </main>
     );
   }
 
-  const topPrediction = prediction?.predictions[0];
   const refresh = () => loadAnalysis(caseId);
 
   return (
@@ -85,9 +77,9 @@ export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
         </div>
       </div>
       <div className="mb-6 border-l-4 border-accent bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-        <strong className="text-foreground">Prediction disclaimer:</strong> Nearby locations and scores are likelihood estimates from the prototype prediction service. They are not guaranteed outcomes and require field verification.
+        <strong className="text-foreground">Status note:</strong> This page shows the current progress of your submitted complaint. Investigation details are available only to authorised staff.
       </div>
-      <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
+      <div className="max-w-2xl">
         <section className="border border-border bg-card p-5 civic-shadow">
           <div className="flex items-center gap-2 border-b border-border pb-4 font-bold text-primary"><Clock3 size={18} />Live complaint timeline</div>
           <div className="mt-5 space-y-0">
@@ -95,7 +87,6 @@ export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
               ["Complaint registered", new Date(caseData.created_at).toLocaleString(), true],
               ["Police verification", "Received by cybercrime unit", true],
               ["Transaction analysis", analysing ? "Running prediction engine..." : prediction ? "Analysis complete" : "Waiting", Boolean(prediction)],
-              ["Nearby location ranking", prediction ? `${prediction.predictions.length} candidate places found` : "Pending analysis", Boolean(prediction)],
             ].map(([name, time, complete]) => (
               <div className="relative flex gap-3 pb-7 last:pb-0" key={name as string}>
                 <span className={`z-10 mt-1 grid size-6 shrink-0 place-items-center rounded-full border-4 ${complete ? "border-primary bg-primary" : "border-accent bg-accent"}`}>
@@ -111,31 +102,6 @@ export function LiveStatus({ caseId, go }: { caseId: string | null; go: Go }) {
             <Row label="Destination account" value={caseData.destination_account} />
             <Row label="Risk level" value={prediction?.risk_level ?? "PENDING"} />
           </dl>
-        </section>
-        <section className="border border-border bg-card p-5 civic-shadow">
-          <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
-            <div className="flex items-center gap-2 font-bold text-primary"><MapPin size={18} />Nearby investigation locations</div>
-            {topPrediction && <span className="bg-destructive px-2.5 py-1 text-[10px] font-bold text-destructive-foreground">{prediction?.risk_level} RISK</span>}
-          </div>
-          {error && <p className="mt-4 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}
-          {prediction ? (
-            <>
-              <div className="relative mt-5 h-48 overflow-hidden border border-border bg-muted map-grid">
-                <div className="absolute inset-x-[15%] top-1/2 h-px rotate-12 bg-primary/50" />
-                <div className="absolute inset-x-[25%] top-1/3 h-px -rotate-25 bg-accent/70" />
-                {prediction.predictions.map((item, index) => <span className={`absolute grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-background text-[10px] font-bold text-primary-foreground ${index === 0 ? "bg-destructive" : "bg-primary"}`} style={{ left: `${20 + ((index * 19) % 65)}%`, top: `${28 + ((index * 23) % 48)}%` }} title={`${item.location_name}: ${scorePercent(item.risk_score)}`} key={item.location_id}>{item.rank}</span>)}
-              </div>
-              <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Radar size={14} className="text-primary" />Ranked points are synthetic candidate locations from the backend catalog.</p>
-              <div className="mt-4 space-y-3">
-                {prediction.predictions.map((item) => {
-                  const location = locations.find((candidate) => candidate.location_id === item.location_id);
-                  return <div className="flex items-start gap-3 border border-border p-3" key={item.location_id}><span className="grid size-8 shrink-0 place-items-center bg-primary text-xs font-bold text-primary-foreground">#{item.rank}</span><div className="min-w-0 flex-1"><p className="font-semibold">{item.location_name}</p><p className="text-xs text-muted-foreground">{location?.location_type ?? "ATM"} · Likely window {item.time_window}</p><p className="mt-1 text-xs text-muted-foreground">{item.explanation.join(" · ")}</p>{location && <p className="mt-1 text-[10px] text-muted-foreground">Coordinates: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</p>}</div><strong className="text-lg text-destructive">{scorePercent(item.risk_score)}</strong></div>;
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="py-12 text-center"><Activity className="mx-auto text-accent" /><p className="mt-3 text-sm font-semibold">Analysis is being prepared</p><p className="mt-1 text-xs text-muted-foreground">The prediction engine will rank nearby candidate locations automatically.</p></div>
-          )}
         </section>
       </div>
     </main>
