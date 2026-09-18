@@ -305,7 +305,7 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
             New Today
           </p>
           <p className="mt-2 text-2xl font-bold text-foreground">
-            {stats?.newToday || 12}
+            {stats?.newToday ?? 0}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">Pending verification</p>
         </div>
@@ -316,7 +316,7 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
             Under Investigation
           </p>
           <p className="mt-2 text-2xl font-bold text-foreground">
-            {stats?.underInvestigation || 42}
+            {stats?.underInvestigation ?? 0}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">Assigned to officers</p>
         </div>
@@ -327,7 +327,7 @@ export function PoliceDashboard({ onSelectInvestigatorCase }: PoliceDashboardPro
             High Priority
           </p>
           <p className="mt-2 text-2xl font-bold text-destructive">
-            {stats?.highPriority || 14}
+            {stats?.highPriority ?? 0}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">Requires immediate action</p>
         </div>

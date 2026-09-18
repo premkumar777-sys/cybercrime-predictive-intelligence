@@ -36,15 +36,28 @@ interface Props {
 
 export function WithdrawalNetworkMap({ predictions, locations, caseId, muleAccount, riskLevel }: Props) {
   const [selected, setSelected] = useState<PredictionItem | null>(null);
+  const displayPredictions = useMemo(
+    () => predictions.length > 0
+      ? predictions
+      : locations.map((location, index) => ({
+        location_id: location.location_id,
+        location_name: location.name,
+        risk_score: 0,
+        rank: index + 1,
+        time_window: "Pending analysis",
+        explanation: ["Live monitored location; ranking requires linked transaction data."],
+      })),
+    [predictions, locations],
+  );
 
   const nodes = useMemo(() => {
-    const count = predictions.length || 1;
-    return predictions.map((pred, i) => {
+    const count = displayPredictions.length || 1;
+    return displayPredictions.map((pred, i) => {
       const angle = (2 * Math.PI * i) / count - Math.PI / 2;
       const loc = locations.find((l) => l.location_id === pred.location_id);
       return { pred, loc, x: CX + ORBIT_R * Math.cos(angle), y: CY + ORBIT_R * Math.sin(angle) };
     });
-  }, [predictions, locations]);
+  }, [displayPredictions, locations]);
 
   const selectedLoc = selected ? locations.find((l) => l.location_id === selected.location_id) : null;
   const pulse1 = ORBIT_R * 0.38;
@@ -223,7 +236,7 @@ export function WithdrawalNetworkMap({ predictions, locations, caseId, muleAccou
             <div className="border-l border-border pl-4 flex-1 min-w-[200px]">
               <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Intelligence Basis</p>
               <ul className="space-y-0.5">
-                {selected.explanation.map((e, i) => (
+                {(selected.explanation ?? []).map((e, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
                     <span className="mt-1 size-1.5 shrink-0 rounded-full" style={{ background: riskColor(selected.risk_score) }} />
                     {e}
