@@ -448,7 +448,7 @@ export function LiveInvestigator({
                 locations={locations}
                 caseId={activeId ?? ""}
                 muleAccount={caseData?.destination_account ?? ""}
-                riskLevel={prediction.risk_level}
+                riskLevel={prediction?.risk_level ?? "PENDING"}
               />
             </section>
           )}
