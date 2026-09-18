@@ -10,12 +10,17 @@ load_dotenv()
 # SQLAlchemy's default behavior might conflict with PgBouncer in transaction mode if pool_pre_ping is true and statement caching is used.
 # Since Supabase provides session mode on port 5432, we can just use DIRECT_URL to avoid issues, or configure for pgbouncer.
 # Let's just use DIRECT_URL for simplicity in the hackathon to avoid prepared statement issues.
-SQLALCHEMY_DATABASE_URL = os.environ.get("DIRECT_URL")
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    pool_pre_ping=True
-)
+# HARD REQUIREMENT: LIVE DATABASE PROTECTION
+# Prevent test suite from silently inheriting DIRECT_URL and wiping the production DB.
+if os.environ.get("IS_TEST_ENV") == "true":
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    SQLALCHEMY_DATABASE_URL = os.environ.get("DIRECT_URL")
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

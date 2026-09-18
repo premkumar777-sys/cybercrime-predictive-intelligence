@@ -1,4 +1,5 @@
 from typing import List
+from sqlalchemy.orm import Session
 from ..schemas import PredictionItem, PredictionResponse
 import math
 import joblib
@@ -7,13 +8,8 @@ from pathlib import Path
 MODEL_PATH = Path(__file__).resolve().parents[2] / "ml" / "model.pkl"
 
 class PredictionService:
-    def analyze(self, case: dict, locations: dict = None) -> dict:
+    def analyze(self, case: dict, locations: dict = None, db: Session = None) -> dict:
         raise NotImplementedError()
-
-class MockPredictionService(PredictionService):
-    def analyze(self, case: dict, locations: dict = None) -> dict:
-        # Fallback dummy logic...
-        return {"case_id": case.get("case_id"), "risk_level": "LOW", "predictions": []}
 
 class MLPredictionService(PredictionService):
     def __init__(self):
@@ -23,73 +19,129 @@ class MLPredictionService(PredictionService):
                 self.model = joblib.load(MODEL_PATH)
         except Exception as e:
             print(f"Error loading model: {e}")
-            
-        # Hardcoded base risks (normally this would be queried from DB or historical stats)
-        self.base_weights = {
-            "ATM001": 0.8,
-            "ATM002": 0.4,
-            "ATM003": 0.7,
-            "ATM004": 0.2,
-            "ATM005": 0.5,
-        }
 
-    def analyze(self, case: dict, locations: dict = None) -> dict:
+    def analyze(self, case: dict, locations: dict = None, db: Session = None) -> dict:
         if locations is None:
             locations = {}
             
-        if not self.model:
-            # Fallback to a mock if model isn't trained yet
-            print("Model not loaded, falling back to mock")
-            mock = MockPredictionService()
-            return mock.analyze(case, locations)
-
-        amount = float(case.get("amount", 0))
-        tx_time = case.get("transaction_time")
-        hour = tx_time.hour if tx_time else 12
-
-        if amount < 5000:
+        case_id = case.get("case_id", "")
+        dest_account = case.get("destination_account")
+        
+        if not dest_account:
             return {
-                "case_id": case.get("case_id"),
+                "case_id": case_id,
                 "risk_level": "UNKNOWN",
                 "predictions": [],
                 "status": "INSUFFICIENT_DATA",
-                "reason": "Insufficient transaction-hop data available to confidently rank cash-out locations."
+                "reason": "Case has no destination account to begin traversal.",
+                "available_transaction_hops": 0,
+                "required_transaction_hops": 2
+            }
+            
+        from ..repositories.repository import Repository
+        repo = Repository(db) if db else None
+        
+        if not repo:
+             return {
+                "case_id": case_id,
+                "risk_level": "UNKNOWN",
+                "predictions": [],
+                "status": "ERROR",
+                "reason": "Database session not provided to PredictionService.",
+             }
+        
+        # 1. Transaction Traversal Intelligence
+        hop_depth, terminal_accounts, transaction_path, graph_data = repo.get_downstream_accounts(dest_account, max_depth=5)
+        
+        if hop_depth < 2:
+            return {
+                "case_id": case_id,
+                "risk_level": "UNKNOWN",
+                "predictions": [],
+                "status": "INSUFFICIENT_DATA",
+                "reason": "Transaction graph is incomplete. Insufficient hops discovered.",
+                "available_transaction_hops": hop_depth,
+                "required_transaction_hops": 2,
+                "transaction_path": transaction_path,
+                "graph": graph_data
             }
 
+        # 2. Historical Candidate Generation
+        candidates_data = repo.get_historical_cashouts(terminal_accounts)
+            
+        if not candidates_data:
+            return {
+                "case_id": case_id,
+                "risk_level": "UNKNOWN",
+                "predictions": [],
+                "status": "INSUFFICIENT_DATA",
+                "reason": "No valid geographical candidate locations identified from historical patterns.",
+                "available_transaction_hops": hop_depth,
+                "required_transaction_hops": 2,
+                "transaction_path": transaction_path,
+                "graph": graph_data
+            }
+
+        # 3. ML Candidate Scoring
+        amount = float(case.get("amount", 0))
+        tx_time = case.get("transaction_time")
+        hour = tx_time.hour if tx_time else 12
+        
+        # Feature: Transaction Graph Strength (0.0 to 1.0)
+        transaction_graph_strength = round(min(hop_depth / 4.0, 1.0), 2)
+        # Feature: Temporal Similarity (0.0 to 1.0)
+        temporal_similarity = 0.9 if (hour >= 18 or hour <= 4) else 0.4
+
         items = []
-        for lid, loc in locations.items():
-            base_risk = self.base_weights.get(lid, 0.5)
+        for loc_id, data in candidates_data.items():
+            loc = locations.get(loc_id)
+            if not loc:
+                continue
+                
+            # Feature: Geographic Relevance maps to base_risk
+            # DEMO LIMITATION: Victim origin coordinates do not exist in the dataset.
+            # Using transparent fallback of 0.5.
+            geographic_relevance = 0.5
             
-            # Predict using model: [amount, hour_of_day, base_atm_risk]
-            features = [[amount, hour, base_risk]]
-            pred_score = self.model.predict(features)[0]
+            # Feature: Historical Association based on frequency (normalized to max 5)
+            historical_association = round(min(data["frequency"] / 5.0, 1.0), 2)
             
-            # Clamp to 0-1
+            # Predict using retrained model: [transaction_graph_strength, historical_association, temporal_similarity, geographic_relevance]
+            pred_score = 0.5
+            if self.model:
+                features_input = [[
+                    transaction_graph_strength,
+                    historical_association,
+                    temporal_similarity,
+                    geographic_relevance
+                ]]
+                pred_score = self.model.predict(features_input)[0]
+            
             score = max(0.01, min(pred_score, 0.99))
             
-            # Generate explainability based on the factors
-            explanation = []
-            if hour >= 18 or hour <= 4:
-                explanation.append("High-risk time window (late night)")
-            if amount > 25000:
-                explanation.append("High transaction amount anomaly")
-            if base_risk > 0.6:
-                explanation.append("Historically targeted ATM cluster")
-                
-            if not explanation:
-                explanation.append("Baseline risk profile")
+            feature_indicators = {
+                "transaction_graph_strength": transaction_graph_strength,
+                "historical_association": historical_association,
+                "temporal_similarity": temporal_similarity,
+                "geographic_relevance": geographic_relevance
+            }
+            
+            # Dynamically derive predicted time window from historical avg time
+            avg_time = data["avg_time"]
+            t_hour = int(avg_time.split(":")[0])
+            end_hour = (t_hour + 2) % 24
+            time_window = f"{t_hour:02d}:00 - {end_hour:02d}:00"
 
             items.append({
-                "location_id": lid,
+                "location_id": loc_id,
                 "location_name": loc.get("name"),
                 "risk_score": round(score, 3),
-                "time_window": "18:00-20:00",
-                "explanation": explanation,
+                "time_window": time_window,
+                "features": feature_indicators,
             })
 
-        # Sort by descending score
+        # 4. Top-K Ranking
         items.sort(key=lambda x: x["risk_score"], reverse=True)
-        # Assign ranks
         for i, it in enumerate(items, start=1):
             it["rank"] = i
 
@@ -102,7 +154,10 @@ class MLPredictionService(PredictionService):
             level = "LOW"
 
         return {
-            "case_id": case.get("case_id"),
+            "case_id": case_id,
             "risk_level": level,
             "predictions": items,
+            "status": "COMPLETED",
+            "transaction_path": transaction_path,
+            "graph": graph_data
         }

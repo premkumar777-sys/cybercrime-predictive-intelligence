@@ -8,3 +8,8 @@ pandas
 scikit-learn
 joblib
 faker
+PyJWT
+passlib[bcrypt]
+bcrypt
+python-multipart
+supabase

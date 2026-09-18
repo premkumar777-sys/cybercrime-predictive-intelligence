@@ -26,10 +26,15 @@ def train():
         
     df = pd.read_csv(data_path)
     
-    # We will train a regressor to output a risk score between 0 and 1
-    # Features: amount, hour_of_day, base_atm_risk
-    # Target: risk_score (since we want a probability/score, not just binary)
-    X = df[["amount", "hour_of_day", "base_atm_risk"]]
+    # Features: transaction_graph_strength, historical_association, temporal_similarity, geographic_relevance
+    # Target: risk_score (ranking score)
+    features = [
+        "transaction_graph_strength", 
+        "historical_association", 
+        "temporal_similarity", 
+        "geographic_relevance"
+    ]
+    X = df[features]
     y = df["risk_score"]
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)

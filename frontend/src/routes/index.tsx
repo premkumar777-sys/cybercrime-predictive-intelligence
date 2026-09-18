@@ -47,7 +47,7 @@ function App() {
   const [citizenProfile, setCitizenProfile] = useState<CitizenProfile | null>(null);
   const [liveCases, setLiveCases] = useState<ApiCase[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
-  useEffect(() => { api.listCases().then(setLiveCases).catch(() => setLiveCases([])); }, []);
+  useEffect(() => { api.listCases().then(setLiveCases).catch(() => setLiveCases([])); }, [user]);
   const roleForView: Partial<Record<View, UserRole>> = {
     police: "police", case: "police", investigator: "investigator", "intel-report": "investigator",
   };
@@ -129,14 +129,15 @@ function Landing({ go, onRegister }: { go: (v: View) => void; onRegister: (categ
 }
 
 function CitizenRegistration({ category, onComplete, onCancel }: { category: string; onComplete: (profile: CitizenProfile) => void; onCancel: () => void }) {
-  const [fullName, setFullName] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState(""); const [identityType, setIdentityType] = useState("Aadhaar"); const [identityNumber, setIdentityNumber] = useState("");
+  const [fullName, setFullName] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [identityType, setIdentityType] = useState("Aadhaar"); const [identityNumber, setIdentityNumber] = useState("");
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  const submit = async (event: React.FormEvent) => { event.preventDefault(); setBusy(true); setError(null); try { onComplete(await api.registerCitizen({ full_name: fullName.trim(), phone: phone.trim(), email: email.trim(), identity_type: identityType, identity_number: identityNumber.trim() })); } catch { setError("We could not verify your details. Please check them and try again."); } finally { setBusy(false); } };
-  return <Page eyebrow="Citizen complaint registration" title="Tell us about yourself first"><form onSubmit={submit} className="mx-auto max-w-3xl border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 border-l-4 border-accent bg-muted p-4"><p className="font-bold">{category}</p><p className="mt-1 text-sm text-muted-foreground">These details are checked against the citizen profile registry before opening your dashboard.</p></div><div className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-semibold">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Mobile number<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Identity document<select value={identityType} onChange={(event) => setIdentityType(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"><option>Aadhaar</option><option>Voter ID</option><option>Driving licence</option><option>Passport</option></select></label><label className="text-sm font-semibold sm:col-span-2">Identity document number<input required value={identityNumber} onChange={(event) => setIdentityNumber(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label></div>{error && <p className="mt-5 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="mt-5 text-xs text-muted-foreground">Use your own identity information.</p><div className="mt-6 flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Verifying details..." : "Continue to citizen dashboard"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Cancel</Button></div></form></Page>;
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setBusy(true); setError(null); try { onComplete(await api.registerCitizen({ full_name: fullName.trim(), phone: phone.trim(), email: email.trim(), password, identity_type: identityType, identity_number: identityNumber.trim() })); } catch { setError("We could not verify your details. Please check them and try again."); } finally { setBusy(false); } };
+  return <Page eyebrow="Citizen complaint registration" title="Tell us about yourself first"><form onSubmit={submit} className="mx-auto max-w-3xl border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 border-l-4 border-accent bg-muted p-4"><p className="font-bold">{category}</p><p className="mt-1 text-sm text-muted-foreground">These details are checked against the citizen profile registry before opening your dashboard.</p></div><div className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-semibold">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Mobile number<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Password<input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label><label className="text-sm font-semibold">Identity document<select value={identityType} onChange={(event) => setIdentityType(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"><option>Aadhaar</option><option>Voter ID</option><option>Driving licence</option><option>Passport</option></select></label><label className="text-sm font-semibold sm:col-span-2">Identity document number<input required value={identityNumber} onChange={(event) => setIdentityNumber(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3"/></label></div>{error && <p className="mt-5 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="mt-5 text-xs text-muted-foreground">Use your own identity information.</p><div className="mt-6 flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Verifying details..." : "Continue to citizen dashboard"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Cancel</Button></div></form></Page>;
 }
 
 function Login({ onLogin, onCancel }: { onLogin: (user: AuthUser) => void; onCancel: () => void }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("police");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -148,15 +149,22 @@ function Login({ onLogin, onCancel }: { onLogin: (user: AuthUser) => void; onCan
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setError(null);
     if (!matchesRolePattern(email, role)) {
-      setError(role === "citizen" ? "Citizen accounts must use a Gmail address (for example, citizen@gmail.com)." : `${role[0].toUpperCase() + role.slice(1)} accounts must use ${role}@gmail.com.`);
+      setError(role === "citizen" ? "Citizen accounts must use a Gmail address (for example, citizen@gmail.com)." : `${(role || "")[0].toUpperCase() + (role || "").slice(1)} accounts must use ${role}@gmail.com.`);
       return;
     }
     setBusy(true);
-    try { onLogin(await api.login({ email: email.trim(), role })); }
-    catch { setError("Login was not approved. This email is not registered for the selected role."); }
+    try { 
+      const response = await api.login({ email: email.trim(), password, role });
+      localStorage.setItem("token", response.access_token);
+      onLogin(response.user); 
+    }
+    catch (err) { 
+      console.error("Login Error:", err);
+      setError("Login failed. Please check your credentials and role."); 
+    }
     finally { setBusy(false); }
   };
-  return <Page eyebrow="Secure staff access" title="Police / Investigator Login"><div className="mx-auto max-w-md border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 flex gap-3"><span className="grid size-10 place-items-center bg-primary text-primary-foreground"><LockKeyhole/></span><div><h2 className="font-bold">Select your role</h2><p className="text-sm text-muted-foreground">Your email must match the selected role in the user registry.</p></div></div><form className="space-y-5" onSubmit={submit}><label className="block text-sm font-semibold">Role<select value={role} onChange={(event) => setRole(event.target.value as UserRole)} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm"><option value="police">Police</option><option value="investigator">Investigator</option></select></label><label className="block text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={`${role}@gmail.com`} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"/></label>{error && <p className="border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="text-xs leading-relaxed text-muted-foreground">Demo registry: police@gmail.com and investigator@gmail.com. Select the matching role.</p><div className="flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Checking access..." : "Login"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Back to home</Button></div></form></div></Page>;
+  return <Page eyebrow="Secure staff access" title="Police / Investigator Login"><div className="mx-auto max-w-md border border-border bg-card p-6 civic-shadow sm:p-8"><div className="mb-6 flex gap-3"><span className="grid size-10 place-items-center bg-primary text-primary-foreground"><LockKeyhole/></span><div><h2 className="font-bold">Select your role</h2><p className="text-sm text-muted-foreground">Your email must match the selected role in the user registry.</p></div></div><form className="space-y-5" onSubmit={submit}><label className="block text-sm font-semibold">Role<select value={role} onChange={(event) => setRole(event.target.value as UserRole)} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm"><option value="police">Police</option><option value="investigator">Investigator</option></select></label><label className="block text-sm font-semibold">Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={`${role}@gmail.com`} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"/></label><label className="block text-sm font-semibold">Password<input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="password123"/></label>{error && <p className="border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<p className="text-xs leading-relaxed text-muted-foreground">Demo registry: police@gmail.com and investigator@gmail.com. Password is password123.</p><div className="flex gap-3"><Button type="submit" disabled={busy}>{busy ? "Checking access..." : "Login"}<ArrowRight/></Button><Button type="button" variant="outline" onClick={onCancel}>Back to home</Button></div></form></div></Page>;
 }
 
 function Info({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) { return <div className="border-t-4 border-primary pt-5"><div className="text-primary">{icon}</div><h2 className="mt-4 text-xl font-bold">{title}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{children}</p></div>; }
@@ -168,14 +176,116 @@ function Risk({ risk }: { risk: string }) { const c = risk === "HIGH" ? "bg-dest
 function Citizen({ go, profile }: { go: (v: View) => void; profile: CitizenProfile | null }) { const isReturning = profile?.returning_citizen; return <Page eyebrow={isReturning ? "Returning citizen verified" : "New citizen profile created"} title={profile ? `Welcome, ${profile.full_name}` : "Citizen Dashboard"} actions={<Button onClick={() => go("report")}><Plus/>Register Complaint</Button>}>
   {profile && <div className={`mb-6 border-l-4 p-4 text-sm ${isReturning ? "border-primary bg-muted" : "border-accent bg-muted"}`}><p className="font-bold">{isReturning ? "Your profile details matched our registry." : "Your new citizen profile is ready."}</p><p className="mt-1 text-muted-foreground">{profile.email} · {profile.identity_type} ending {profile.identity_number.slice(-4)}</p></div>}
   <div className="grid gap-4 sm:grid-cols-3"><Metric label="Active complaints" value={isReturning ? "1" : "0"} icon={<FileText/>} note={isReturning ? "Currently under review" : "Register your first complaint"}/><Metric label="Latest status" value={isReturning ? "Analyzing" : "New profile"} icon={<Activity/>} note={isReturning ? "Updated 18 minutes ago" : "Details verified for this session"}/><Metric label="Evidence files" value={isReturning ? "4" : "0"} icon={<Paperclip/>} note={isReturning ? "Successfully attached" : "Attach evidence with your complaint"}/></div>
-  <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]"><Card title="Your recent complaint" icon={<FileCheck2/>}><div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs text-muted-foreground">CASE ID</p><p className="mt-1 font-bold">CASE-2026-00124</p><p className="mt-3 text-sm">UPI Fraud · ₹75,000</p><p className="text-sm text-muted-foreground">Reported from Hyderabad · 14 March 2026</p></div><Risk risk="HIGH"/></div><div className="mt-5 flex gap-3"><Button onClick={() => go("status")}>Track Status<ArrowRight/></Button><Button variant="outline" onClick={() => go("report")}>View Details</Button></div></Card><Card title="Safety guidance" icon={<ShieldCheck/>}><ul className="space-y-3 text-sm text-muted-foreground"><li>• Contact 1930 immediately for financial cyber fraud.</li><li>• Do not delete messages or transaction records.</li><li>• Never share OTP, PIN, or remote access.</li></ul></Card></div>
+  <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+    <Card title="Track complaints" icon={<FileCheck2/>}>
+      <div className="py-8 text-center text-muted-foreground">
+        <p>You can track your existing complaint using the reference ID provided upon submission.</p>
+        <div className="mt-5 flex justify-center gap-3">
+          <Button onClick={() => go("status")}>Track Status<ArrowRight/></Button>
+          <Button variant="outline" onClick={() => go("report")}><Plus/>Register Complaint</Button>
+        </div>
+      </div>
+    </Card>
+    <Card title="Safety guidance" icon={<ShieldCheck/>}><ul className="space-y-3 text-sm text-muted-foreground"><li>• Contact 1930 immediately for financial cyber fraud.</li><li>• Do not delete messages or transaction records.</li><li>• Never share OTP, PIN, or remote access.</li></ul></Card>
+  </div>
  </Page>; }
 
-function ReportForm({ go, onCreated }: { go: (v: View) => void; onCreated: (caseId: string) => void }) {
- const [submitted,setSubmitted]=useState<string | null>(null); const [error,setError]=useState<string | null>(null); const [amount,setAmount]=useState("75000"); const [destination,setDestination]=useState("ACC-DEMO"); const [busy,setBusy]=useState(false);
- const submit = async () => { setBusy(true); setError(null); try { const result = await api.createCase({ fraud_type: "UPI_FRAUD", amount: Number(amount), transaction_time: new Date().toISOString(), destination_account: destination }); setSubmitted(result.case_id); onCreated(result.case_id); } catch (e) { setError(e instanceof Error ? e.message : "Unable to submit complaint"); } finally { setBusy(false); } };
- if(submitted) return <Page eyebrow="Complaint submitted" title="Your Case ID has been generated"><div className="mx-auto max-w-xl border border-border bg-card p-8 text-center civic-shadow"><CheckCircle2 className="mx-auto text-primary" size={48}/><p className="mt-5 text-sm text-muted-foreground">Please save this live case reference</p><p className="mt-2 text-3xl font-extrabold text-primary">{submitted}</p><p className="mt-4 text-sm text-muted-foreground">Your complaint has moved to initial police review.</p><Button className="mt-6" onClick={() => go("status")}>Track Complaint<ArrowRight/></Button></div></Page>;
- return <Page eyebrow="Citizen services" title="Report Cybercrime" actions={<span className="text-xs text-muted-foreground">Data is submitted to the local FastAPI service</span>}><div className="grid gap-6 lg:grid-cols-[1.4fr_.6fr]"><Card title="Complaint & transaction details" icon={<FileText/>}><div className="grid gap-4 sm:grid-cols-2"><Field label="Fraud category" value="UPI Fraud"/><Field label="Incident date" value={new Date().toLocaleDateString("en-IN")}/><label className="text-xs font-semibold">Amount lost<input className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" value={amount} onChange={(e)=>setAmount(e.target.value)} type="number"/></label><label className="text-xs font-semibold">Destination account<input className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" value={destination} onChange={(e)=>setDestination(e.target.value)}/></label><Field label="Transaction reference" value="UPI-TXN-DEMO-84721"/><Field label="Location" value="Hyderabad, Telangana"/></div><label className="mt-4 block text-xs font-semibold">Incident description<textarea className="mt-2 min-h-28 w-full border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring" defaultValue="Received a fraudulent payment request presented as account verification. Three unauthorized transfers followed."/></label>{error && <p className="mt-4 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}<Button className="mt-5" disabled={busy} onClick={submit}>{busy ? "Submitting..." : "Submit Complaint"}<ArrowRight/></Button></Card><Card title="Evidence upload" icon={<UploadCloud/>}><button type="button" className="w-full border-2 border-dashed border-border bg-muted p-8 text-center"><UploadCloud className="mx-auto text-primary"/><p className="mt-3 text-sm font-semibold">Add evidence files</p><p className="mt-1 text-xs text-muted-foreground">Prototype file area; case data is submitted live</p></button><div className="mt-4 space-y-2 text-xs"><Evidence name="upi-receipt-demo.pdf"/><Evidence name="chat-screenshot-demo.png"/><Evidence name="bank-statement-demo.pdf"/></div></Card></div></Page>; }
+ function ReportForm({ go, onCreated }: { go: (v: View) => void; onCreated: (caseId: string) => void }) {
+  const [submitted, setSubmitted] = useState<string | null>(null);
+  const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [amount, setAmount] = useState("75000");
+  const [destination, setDestination] = useState("ACC-BHANU");
+  const [busy, setBusy] = useState(false);
+
+ const submit = async () => {
+   setBusy(true);
+   setError(null);
+   try {
+     const result = await api.createCase({
+       fraud_type: "UPI_FRAUD",
+       amount: Number(amount),
+       transaction_time: new Date().toISOString(),
+       destination_account: destination
+     });
+     setCreatedCaseId(result.case_id);
+     onCreated(result.case_id);
+   } catch (e) {
+     setError(e instanceof Error ? e.message : "Unable to submit complaint");
+   } finally {
+     setBusy(false);
+   }
+ };
+
+ if (submitted) return <Page eyebrow="Complaint submitted" title="Your Case ID has been generated"><div className="mx-auto max-w-xl border border-border bg-card p-8 text-center civic-shadow"><CheckCircle2 className="mx-auto text-primary" size={48}/><p className="mt-5 text-sm text-muted-foreground">Please save this live case reference</p><p className="mt-2 text-3xl font-extrabold text-primary">{submitted}</p><p className="mt-4 text-sm text-muted-foreground">Your complaint has moved to initial police review.</p><Button className="mt-6" onClick={() => go("status")}>Track Complaint<ArrowRight/></Button></div></Page>;
+
+ return <Page eyebrow="Citizen services" title="Report Cybercrime" actions={<span className="text-xs text-muted-foreground">Data is submitted to the local FastAPI service</span>}>
+   <div className="grid gap-6 lg:grid-cols-[1.4fr_.6fr]">
+     <Card title="Complaint & transaction details" icon={<FileText/>}>
+       {createdCaseId && (
+         <div className="mb-4 border-l-4 border-primary bg-muted p-4">
+           <p className="font-bold text-primary">Case created: {createdCaseId}</p>
+           <p className="mt-1 text-xs text-muted-foreground">You can now upload evidence files below or finish your submission.</p>
+         </div>
+       )}
+       <div className="grid gap-4 sm:grid-cols-2">
+         <Field label="Fraud category" value="UPI Fraud"/>
+         <Field label="Incident date" value={new Date().toLocaleDateString("en-IN")}/>
+         <label className="text-xs font-semibold">Amount lost<input className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" value={amount} onChange={(e)=>setAmount(e.target.value)} type="number"/></label>
+         <label className="text-xs font-semibold">Destination account<input className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" value={destination} onChange={(e)=>setDestination(e.target.value)}/></label>
+         <Field label="Transaction reference" value="UPI-TXN-DEMO-84721"/>
+         <Field label="Location" value="Hyderabad, Telangana"/>
+       </div>
+       <label className="mt-4 block text-xs font-semibold">Incident description<textarea className="mt-2 min-h-28 w-full border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring" defaultValue="Received a fraudulent payment request presented as account verification. Three unauthorized transfers followed."/></label>
+       {error && <p className="mt-4 border-l-4 border-destructive bg-muted p-3 text-xs text-destructive">{error}</p>}
+       
+       <div className="mt-5 flex gap-3">
+         {!createdCaseId ? (
+           <Button disabled={busy} onClick={submit}>{busy ? "Submitting..." : "Submit Complaint"}<ArrowRight/></Button>
+         ) : (
+           <Button onClick={() => setSubmitted(createdCaseId)}>Finish & Track Complaint<ArrowRight/></Button>
+         )}
+       </div>
+     </Card>
+
+     <Card title="Evidence upload" icon={<UploadCloud />}>
+       <label className="w-full border-2 border-dashed border-border bg-muted p-8 text-center cursor-pointer block hover:bg-muted/80 transition-colors">
+         <input 
+           type="file" 
+           className="hidden" 
+           onChange={async (e) => {
+             const file = e.target.files?.[0];
+             if (!file) return;
+             if (!createdCaseId) {
+                setError("Please submit the complaint first before uploading evidence.");
+                return;
+             }
+             try {
+               setBusy(true);
+               await api.uploadEvidence(createdCaseId, file);
+               alert("Evidence uploaded successfully!");
+             } catch (err: any) {
+               setError(err.message || "Failed to upload evidence");
+             } finally {
+               setBusy(false);
+             }
+           }}
+           accept="application/pdf,image/png,image/jpeg" 
+         />
+         <UploadCloud className="mx-auto text-primary" />
+         <p className="mt-3 text-sm font-semibold">Add evidence files</p>
+         <p className="mt-1 text-xs text-muted-foreground">Supports PDF, PNG, JPG (Max 5MB)</p>
+       </label>
+       
+       <div className="mt-4 space-y-2 text-xs">
+         <Evidence name="upi-receipt-demo.pdf" />
+         <Evidence name="chat-screenshot-demo.png" />
+         <Evidence name="bank-statement-demo.pdf" />
+       </div>
+     </Card>
+   </div>
+ </Page>;
+}
 function Field({label,value}:{label:string;value:string}){return <label className="text-xs font-semibold">{label}<input className="mt-2 h-10 w-full border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" defaultValue={value}/></label>}
 function Evidence({name}:{name:string}){return <div className="flex items-center gap-2 border border-border bg-background p-2"><Paperclip size={14} className="text-primary"/><span className="truncate">{name}</span><CheckCircle2 size={14} className="ml-auto text-primary"/></div>}
 
@@ -186,7 +296,7 @@ function Police({go, liveCases, onSelect}:{go:(v:View)=>void; liveCases: ApiCase
   const [filterType, setFilterType] = useState("ALL");
   const [filterRisk, setFilterRisk] = useState("ALL");
   
-  let rows = liveCases.length ? liveCases.map(formatCase) : cases; 
+  let rows = liveCases.map(formatCase); 
   
   if (filterType !== "ALL") rows = rows.filter(r => r.type === filterType);
   if (filterRisk !== "ALL") rows = rows.filter(r => r.risk === filterRisk);
@@ -213,9 +323,9 @@ function Police({go, liveCases, onSelect}:{go:(v:View)=>void; liveCases: ApiCase
 function Alert({text,time}:{text:string;time:string}){return <div className="mb-3 flex gap-3 border-l-2 border-destructive bg-muted p-3 last:mb-0"><AlertTriangle size={16} className="shrink-0 text-destructive"/><div><p className="text-xs font-semibold">{text}</p><p className="mt-1 text-[10px] text-muted-foreground">{time} ago</p></div></div>}
 function Bars(){return <div className="space-y-4">{[["UPI fraud",72],["Investment scam",48],["Card fraud",35],["Identity theft",24]].map(([n,v])=><div key={n as string}><div className="mb-1 flex justify-between text-xs"><span>{n}</span><span>{v}%</span></div><div className="h-2 bg-muted"><div className="h-full bg-primary" style={{width:`${v}%`}}/></div></div>)}</div>}
 
-function CaseDetail({go, caseId}:{go:(v:View)=>void; caseId:string | null}) { const [caseData,setCaseData]=useState<ApiCase | null>(null); const [prediction,setPrediction]=useState<Prediction | null>(null); const [busy,setBusy]=useState(false); useEffect(()=>{ if(!caseId) return; api.getCase(caseId).then(setCaseData).catch(()=>setCaseData(null)); api.getPrediction(caseId).then(setPrediction).catch(()=>setPrediction(null)); },[caseId]); if(!caseId || !caseData) return <Page eyebrow="Police case detail" title="No case selected"><p className="text-sm text-muted-foreground">Select a case from the police queue first.</p></Page>; const analyze=async()=>{setBusy(true); try { setPrediction(await api.analyzeCase(caseId)); } finally { setBusy(false); }}; const risk=prediction?.risk_level ?? "PENDING"; const score=prediction?.predictions[0]?.risk_score ?? 0; return <Page eyebrow="Police case detail" title={caseData.case_id} actions={<Button onClick={()=>go("investigator")}>Open Investigator Analysis<ArrowRight/></Button>}><div className="grid gap-px bg-border border border-border sm:grid-cols-4"><div className="bg-secondary p-4 text-secondary-foreground"><p className="text-[10px] uppercase opacity-70">Case</p><p className="mt-1 font-bold">{caseData.case_id}</p></div>{[["Fraud type",caseData.fraud_type.replaceAll("_"," ")],["Reported amount",`₹${caseData.amount.toLocaleString("en-IN")}`],["Status",caseData.status]].map(([k,v])=><div className="bg-card p-4" key={k}><p className="text-[10px] uppercase text-muted-foreground">{k}</p><p className="mt-1 font-bold">{v}</p></div>)}</div><div className="mt-6 grid gap-6 lg:grid-cols-2"><Card title="Transaction activity" icon={<Activity/>}><Timeline/><Button className="mt-4" disabled={busy} onClick={analyze}>{busy ? "Analysing..." : prediction ? "Re-run analysis" : "Analyse case"}<Radar/></Button></Card><Card title="Risk-level overview" icon={<AlertTriangle/>}><div className="flex items-center gap-5 border-b border-border pb-5"><div className="grid size-24 place-items-center rounded-full border-[10px] border-destructive text-2xl font-extrabold">{scorePercent(score)}</div><div><Risk risk={risk}/><p className="mt-2 text-sm text-muted-foreground">{prediction ? "Ranked prediction returned by the backend." : "Run analysis to calculate candidate location risk."}</p></div></div>{prediction && <ol className="mt-5 space-y-3">{prediction.predictions.map((item)=><li className="border-b border-border pb-3 text-sm" key={item.location_id}><span className="font-bold">#{item.rank} {item.location_name}</span><span className="float-right text-destructive">{scorePercent(item.risk_score)}</span><p className="mt-1 text-xs text-muted-foreground">{item.time_window}</p></li>)}</ol>}</Card></div></Page> }
+function CaseDetail({go, caseId}:{go:(v:View)=>void; caseId:string | null}) { const [caseData,setCaseData]=useState<ApiCase | null>(null); const [prediction,setPrediction]=useState<Prediction | null>(null); const [busy,setBusy]=useState(false); useEffect(()=>{ if(!caseId) return; api.getCase(caseId).then(setCaseData).catch(()=>setCaseData(null)); api.getPrediction(caseId).then(setPrediction).catch(()=>setPrediction(null)); },[caseId]); if(!caseId || !caseData) return <Page eyebrow="Police case detail" title="No case selected"><p className="text-sm text-muted-foreground">Select a case from the police queue first.</p></Page>; const analyze=async()=>{setBusy(true); try { setPrediction(await api.analyzeCase(caseId)); } finally { setBusy(false); }}; const risk=prediction?.risk_level ?? "PENDING"; const score=prediction?.predictions[0]?.risk_score ?? 0; return <Page eyebrow="Police case detail" title={caseData.case_id} actions={<Button onClick={()=>go("investigator")}>Open Investigator Analysis<ArrowRight/></Button>}><div className="grid gap-px bg-border border border-border sm:grid-cols-4"><div className="bg-secondary p-4 text-secondary-foreground"><p className="text-[10px] uppercase opacity-70">Case</p><p className="mt-1 font-bold">{caseData.case_id}</p></div>{[["Fraud type",caseData.fraud_type.replaceAll("_"," ")],["Reported amount",`₹${caseData.amount.toLocaleString("en-IN")}`],["Status",caseData.status]].map(([k,v])=><div className="bg-card p-4" key={k}><p className="text-[10px] uppercase text-muted-foreground">{k}</p><p className="mt-1 font-bold">{v}</p></div>)}</div><div className="mt-6 grid gap-6 lg:grid-cols-2"><Card title="Transaction activity" icon={<Activity/>}><Timeline amount={caseData.amount}/><Button className="mt-4" disabled={busy} onClick={analyze}>{busy ? "Analysing..." : prediction ? "Re-run analysis" : "Analyse case"}<Radar/></Button></Card><Card title="Risk-level overview" icon={<AlertTriangle/>}><div className="flex items-center gap-5 border-b border-border pb-5"><div className="grid size-24 place-items-center rounded-full border-[10px] border-destructive text-2xl font-extrabold">{scorePercent(score)}</div><div><Risk risk={risk}/><p className="mt-2 text-sm text-muted-foreground">{prediction ? "Ranked prediction returned by the backend." : "Run analysis to calculate candidate location risk."}</p></div></div>{prediction && <ol className="mt-5 space-y-3">{prediction.predictions.map((item)=><li className="border-b border-border pb-3 text-sm" key={item.location_id}><span className="font-bold">#{item.rank} {item.location_name}</span><span className="float-right text-destructive">{scorePercent(item.risk_score)}</span><p className="mt-1 text-xs text-muted-foreground">{item.time_window}</p></li>)}</ol>}</Card></div></Page> }
 function CaseStrip(){return <div className="grid gap-px bg-border border border-border sm:grid-cols-4"><div className="bg-secondary p-4 text-secondary-foreground"><p className="text-[10px] uppercase opacity-70">Case</p><p className="mt-1 font-bold">CASE-2026-00124</p></div>{[["Fraud type","UPI Fraud"],["Reported amount","₹75,000"],["Priority","High risk estimate"]].map(([k,v])=><div className="bg-card p-4" key={k}><p className="text-[10px] uppercase text-muted-foreground">{k}</p><p className="mt-1 font-bold">{v}</p></div>)}</div>}
-function Timeline(){return <div className="space-y-4">{[["09:12","Victim account debited","₹75,000"],["09:14","Split to mule wallet 7712","₹22,500"],["09:19","Split to mule wallet 4409","₹37,500"],["10:03","Transfer to cash-out account","₹15,000"],["18:00","Estimated withdrawal window","Risk estimate"]].map(([t,n,a],i)=><div className="flex gap-3" key={t}><span className={`grid size-9 shrink-0 place-items-center text-[10px] font-bold ${i===4?"bg-accent text-accent-foreground":"bg-muted text-primary"}`}>{t}</span><div className="flex-1 border-b border-border pb-3"><p className="text-sm font-semibold">{n}</p><p className="text-xs text-muted-foreground">{a}</p></div></div>)}</div>}
+function Timeline({amount=75000}:{amount?:number}){ const t = (pct: number) => `₹${Math.round(amount * pct).toLocaleString("en-IN")}`; return <div className="space-y-4">{[["09:12","Victim account debited",t(1.0)],["09:14","Split to mule wallet 7712",t(0.3)],["09:19","Split to mule wallet 4409",t(0.5)],["10:03","Transfer to cash-out account",t(0.2)],["18:00","Estimated withdrawal window","Risk estimate"]].map(([time,n,a],i)=><div className="flex gap-3" key={time}><span className={`grid size-9 shrink-0 place-items-center text-[10px] font-bold ${i===4?"bg-accent text-accent-foreground":"bg-muted text-primary"}`}>{time}</span><div className="flex-1 border-b border-border pb-3"><p className="text-sm font-semibold">{n}</p><p className="text-xs text-muted-foreground">{a}</p></div></div>)}</div>}
 
 function Investigator({go}:{go:(v:View)=>void}) { const [selected,setSelected]=useState(0); const selectedLocation=locations[selected] ?? locations[0]; if (!selectedLocation) return null; return <Page eyebrow="Investigator command workspace" title="Predictive Case Analysis" actions={<Button onClick={()=>go("intel-report")}><FileText/>Generate Intelligence Report</Button>}><CaseStrip/><div className="mt-6 grid gap-6 xl:grid-cols-12"><div className="space-y-6 xl:col-span-7"><Card title="Transaction timeline" icon={<Activity/>}><Timeline/></Card><Card title="Transaction relationship" icon={<Network/>}><div className="overflow-x-auto"><div className="flex min-w-[600px] items-center justify-between gap-3 py-5"><Node type="SOURCE" name="Victim A/C" active/><Link/><Node type="MULE 1" name="Wallet ·7712"/><Link/><Node type="MULE 2" name="Wallet ·4409"/><Link/><Node type="CASH-OUT" name="A/C ·9031" risk/></div></div><div className="grid gap-2 sm:grid-cols-3"><Mini text="2 linked mule wallets"/><Mini text="4 transaction hops"/><Mini text="1 probable cash-out node"/></div></Card><Card title="Explainability & supporting factors" icon={<Fingerprint/>}><Factors/></Card></div><div className="space-y-6 xl:col-span-5"><Card title="Predictive intelligence" icon={<Radar/>}><div className="flex items-start justify-between"><div><p className="text-xs uppercase text-muted-foreground">Location risk assessment</p><p className="mt-1 text-xl font-extrabold">Cash-withdrawal likelihood</p></div><Risk risk="HIGH"/></div><p className="mt-4 border-l-4 border-accent bg-muted p-3 text-xs text-muted-foreground">Probabilistic estimate only. Use with corroborating evidence and field verification.</p></Card><Card title="Ranked candidate locations" icon={<MapPin/>}>{locations.map((l,i)=><button key={l.name} onClick={()=>setSelected(i)} className={`mb-3 w-full border p-3 text-left last:mb-0 ${selected===i?"border-primary bg-muted":"border-border bg-card"}`}><div className="flex items-start gap-3"><span className="grid size-7 shrink-0 place-items-center bg-secondary text-xs font-bold text-secondary-foreground">{i+1}</span><div className="flex-1"><p className="text-sm font-bold">{l.name} — {l.area}</p><p className="mt-1 text-xs text-muted-foreground">Likely window {l.window}</p><div className="mt-2 h-1.5 bg-border"><div className={i===0?"h-full bg-destructive":"h-full bg-primary"} style={{width:`${l.score}%`}}/></div></div><span className="font-extrabold text-destructive">{l.score}%</span></div></button>)}</Card><Card title="Interactive investigation map" icon={<Map/>}><div className="map-grid relative aspect-[16/10] overflow-hidden border border-border"><span className="absolute left-3 top-3 bg-card px-2 py-1 text-[10px] font-bold civic-shadow">HYDERABAD · FICTIONAL MAP</span><div className="absolute left-[12%] top-[60%] h-1 w-[78%] rotate-[-11deg] bg-primary/20"/><div className="absolute left-[28%] top-[10%] h-[80%] w-1 rotate-[22deg] bg-primary/20"/>{locations.map((l,i)=><button key={l.name} onClick={()=>setSelected(i)} aria-label={l.name} className={`absolute ${l.pos} grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-card text-xs font-bold text-primary-foreground civic-shadow ${selected===i?"bg-destructive scale-125":"bg-primary"}`}>{i+1}</button>)}</div><div className="mt-3 flex justify-between text-xs"><span className="font-semibold">Selected: {selectedLocation.name}</span><span className="text-muted-foreground">Risk {selectedLocation.score}%</span></div></Card></div></div></Page> }
 function Node({type,name,active,risk}:{type:string;name:string;active?:boolean;risk?:boolean}){return <div className={`min-w-28 border p-3 text-center ${risk?"border-destructive bg-muted":active?"border-primary bg-secondary text-secondary-foreground":"border-border bg-background"}`}><p className="text-[9px] font-bold uppercase opacity-70">{type}</p><p className="mt-1 text-xs font-semibold">{name}</p></div>}

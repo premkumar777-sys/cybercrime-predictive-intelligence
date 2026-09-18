@@ -44,7 +44,7 @@ class PredictionItem(BaseModel):
     risk_score: float
     rank: int
     time_window: str
-    explanation: List[str]
+    features: dict
 
 
 class PredictionResponse(BaseModel):
@@ -53,26 +53,40 @@ class PredictionResponse(BaseModel):
     predictions: List[PredictionItem]
     status: Optional[str] = "COMPLETED"
     reason: Optional[str] = None
+    transaction_path: Optional[List[str]] = []
 
 
 class LoginRequest(BaseModel):
     email: str
-    role: str
-
+    password: str
 
 class LoginResponse(BaseModel):
-    email: str
-    name: str
-    role: str
-
+    access_token: str
+    token_type: str = "bearer"
+    user: dict
 
 class CitizenRegistration(BaseModel):
     full_name: str
     phone: str
     email: str
+    password: str
     identity_type: str
     identity_number: str
 
 
-class CitizenRegistrationResponse(CitizenRegistration):
+class CitizenRegistrationResponse(BaseModel):
+    full_name: str
+    phone: str
+    email: str
+    identity_type: str
+    identity_number: str
     returning_citizen: bool
+
+class EvidenceResponse(BaseModel):
+    evidence_id: str
+    case_id: str
+    original_filename: str
+    content_type: str
+    file_size: int
+    uploaded_at: datetime
+    download_url: Optional[str] = None

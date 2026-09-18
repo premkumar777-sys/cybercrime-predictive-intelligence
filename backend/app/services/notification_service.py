@@ -10,7 +10,7 @@ class NotificationService:
             
             # Print a simulated SMS/Email alert to the console
             print("="*50)
-            print("🚨 HIGH PRIORITY I4C ALERT SENT 🚨")
+            print("[HIGH PRIORITY I4C ALERT SENT]")
             print("="*50)
             print(f"CASE: {case_id}")
             print(f"To: LEA Task Force, I4C Coordination Center")

@@ -13,7 +13,7 @@ export default function LiveMap({ prediction, locations }: { prediction: any, lo
   if (!prediction) return null;
   
   return (
-    <MapContainer center={[12.9716, 77.5946]} zoom={13} style={{ height: "100%", width: "100%", minHeight: "350px" }}>
+    <MapContainer center={[17.3850, 78.4867]} zoom={11} style={{ height: "100%", width: "100%", minHeight: "350px" }}>
       <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       {prediction.predictions.map((item: any) => {
         const loc = locations.find(l => l.location_id === item.location_id);
@@ -23,7 +23,11 @@ export default function LiveMap({ prediction, locations }: { prediction: any, lo
             <Popup>
               <strong>#{item.rank} {loc.name}</strong><br/>
               Risk Score: {scorePercent(item.risk_score)}<br/>
-              {item.explanation.join(", ")}
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                {Object.entries(item.features || {}).map(([k, v]) => (
+                  <div key={k}>{k.replace(/_/g, " ")}: {v as number}</div>
+                ))}
+              </div>
             </Popup>
           </Marker>
         );
