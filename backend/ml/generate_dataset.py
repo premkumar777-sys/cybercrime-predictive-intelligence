@@ -22,30 +22,33 @@ def generate_data(num_records=5000):
     
     for _ in range(num_records):
         atm = np.random.choice(ATMS)
-        amount = np.random.exponential(scale=15000) # Fraud amounts are usually high
-        hour = np.random.randint(0, 24)
         
-        # Heuristics for the synthetic target variable
-        # High risk if: late night (18-04) OR amount > 25k AND base risk is high
-        time_risk = 0.8 if (hour >= 18 or hour <= 4) else 0.2
-        amount_risk = 0.9 if amount > 25000 else 0.3
+        # We synthesize the 4 core prototype features
+        transaction_graph_strength = np.random.uniform(0.1, 1.0)
+        historical_association = np.random.uniform(0.0, 1.0)
+        temporal_similarity = np.random.uniform(0.0, 1.0)
+        geographic_relevance = atm["base_risk"] + np.random.normal(0, 0.1)
+        geographic_relevance = max(0.0, min(geographic_relevance, 1.0))
         
-        # Combine risk factors
-        total_risk_score = (atm['base_risk'] * 0.4) + (time_risk * 0.4) + (amount_risk * 0.2)
+        # Combine risk factors to generate the target ranking score
+        # A real model would learn these weights from historical outcome data
+        # For our prototype, we enforce logical relationships
+        total_risk_score = (
+            (transaction_graph_strength * 0.2) + 
+            (historical_association * 0.4) + 
+            (temporal_similarity * 0.2) + 
+            (geographic_relevance * 0.2)
+        )
         
         # Add some noise
-        total_risk_score += np.random.normal(0, 0.1)
-        total_risk_score = max(0, min(total_risk_score, 1))
-        
-        # Target variable
-        is_high_risk = 1 if total_risk_score > 0.65 else 0
+        total_risk_score += np.random.normal(0, 0.05)
+        total_risk_score = max(0.0, min(total_risk_score, 1.0))
         
         records.append({
-            "amount": amount,
-            "hour_of_day": hour,
-            "location_id": atm["location_id"],
-            "base_atm_risk": atm["base_risk"],
-            "is_high_risk": is_high_risk,
+            "transaction_graph_strength": transaction_graph_strength,
+            "historical_association": historical_association,
+            "temporal_similarity": temporal_similarity,
+            "geographic_relevance": geographic_relevance,
             "risk_score": total_risk_score
         })
         

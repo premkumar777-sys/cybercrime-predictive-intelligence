@@ -14,7 +14,7 @@ export type PredictionItem = {
   risk_score: number;
   rank: number;
   time_window: string;
-  explanation: string[];
+  features: Record<string, number>;
 };
 
 export interface Prediction {
@@ -23,6 +23,11 @@ export interface Prediction {
   predictions: PredictionItem[];
   status?: string;
   reason?: string;
+  transaction_path?: string[];
+  graph?: {
+    nodes: { id: string; group: string }[];
+    links: { source: string; target: string }[];
+  };
 };
 
 export type Location = {
@@ -50,7 +55,7 @@ export type CitizenProfile = {
   returning_citizen: boolean;
 };
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -99,21 +104,79 @@ export type AuditVerification = {
 };
 
 export const api = {
-  registerCitizen: (payload: Omit<CitizenProfile, "returning_citizen">) =>
+  registerCitizen: (payload: Omit<CitizenProfile, "returning_citizen"> & { password?: string }) =>
     request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
-  login: (payload: { email: string; role: UserRole }) =>
-    request<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
-  listCases: () => request<ApiCase[]>("/cases"),
-  getCase: (caseId: string) => request<ApiCase>(`/cases/${encodeURIComponent(caseId)}`),
-  getPrediction: (caseId: string) => request<Prediction>(`/cases/${encodeURIComponent(caseId)}/predictions`),
-  analyzeCase: (caseId: string) => request<Prediction>(`/cases/${encodeURIComponent(caseId)}/analyze`, { method: "POST" }),
+  login: (payload: { email: string; password?: string; role?: UserRole }) =>
+    request<{ access_token: string; user: AuthUser }>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+  listCases: () => {
+    const token = localStorage.getItem("token");
+    return request<ApiCase[]>("/cases", { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
+  },
+  getCase: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<ApiCase>(`/cases/${encodeURIComponent(caseId)}`, { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
+  },
+  getPrediction: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/predictions`, { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
+  },
+  analyzeCase: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/analyze`, { method: "POST", ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
+  },
   listLocations: () => request<Location[]>("/locations"),
-  createCase: (payload: { fraud_type: string; amount: number; transaction_time: string; destination_account: string }) =>
-    request<{ case_id: string; status: string }>("/cases", { method: "POST", body: JSON.stringify(payload) }),
-  getAuditTrail: (caseId: string) =>
-    request<AuditBlock[]>(`/cases/${encodeURIComponent(caseId)}/audit-trail`),
-  verifyAuditTrail: (caseId: string) =>
-    request<AuditVerification>(`/cases/${encodeURIComponent(caseId)}/verify-audit`, { method: "POST" }),
+  createCase: (payload: { fraud_type: string; amount: number; transaction_time: string; destination_account: string }) => {
+    const token = localStorage.getItem("token");
+    return request<{ case_id: string; status: string }>("/cases", {
+      method: "POST",
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+      body: JSON.stringify(payload),
+    });
+  },
+  getAuditTrail: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<AuditBlock[]>(`/cases/${encodeURIComponent(caseId)}/audit-trail`, {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  verifyAuditTrail: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<AuditVerification>(`/cases/${encodeURIComponent(caseId)}/verify-audit`, {
+      method: "POST",
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  getEvidence: (caseId: string) => {
+    const token = localStorage.getItem("token");
+    return request<any[]>(`/cases/${encodeURIComponent(caseId)}/evidence`, {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  uploadEvidence: async (caseId: string, file: File) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    
+    const response = await fetch(`${API_URL}/cases/${encodeURIComponent(caseId)}/evidence`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || "Upload failed");
+    }
+    return response.json();
+  },
+  downloadEvidence: (caseId: string, evidenceId: string) => {
+    const token = localStorage.getItem("token");
+    return request<any>(`/cases/${encodeURIComponent(caseId)}/evidence/${encodeURIComponent(evidenceId)}/download`, {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
 };
 
 export function formatCase(apiCase: ApiCase) {
