@@ -21,6 +21,8 @@ import {
   type Location,
   type Prediction,
 } from "@/lib/api";
+import { policeService } from "@/services/policeService";
+import type { PoliceComplaint } from "@/types/police";
 
 type Go = (view: "investigator" | "intel-report") => void;
 
@@ -54,6 +56,19 @@ export function LiveInvestigator({
   const [loadingCases, setLoadingCases] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const localComplaintToCase = (complaint: PoliceComplaint): ApiCase => ({
+    case_id: complaint.liveCaseId || complaint.id,
+    fraud_type: complaint.fraudType.toUpperCase().replace(/[\s/-]+/g, "_"),
+    amount: complaint.amount,
+    transaction_time: new Date(`${complaint.incidentDate} ${complaint.incidentTime}`).toISOString(),
+    destination_account: complaint.destinationAccount || "ACC-MULE-UNKNOWN",
+    status: complaint.status === "Investigation in Progress" ? "ANALYZED" : "RECEIVED",
+    created_at: new Date(`${complaint.reportedDate} ${complaint.reportedTime}`).toISOString(),
+  });
+
+  const isActiveCase = (caseItem: ApiCase) =>
+    !["RESOLVED", "CLOSED", "REJECTED"].includes(caseItem.status.toUpperCase());
+
   // Sync initialCaseId if parent updates it
   useEffect(() => {
     if (initialCaseId) {
@@ -65,7 +80,18 @@ export function LiveInvestigator({
   const refreshCaseList = async () => {
     try {
       setLoadingCases(true);
-      const cases = await api.listCases();
+      const [backendCases, localComplaints] = await Promise.all([
+        api.listCases().catch(() => [] as ApiCase[]),
+        policeService.getAllComplaints(),
+      ]);
+      const mergedCases = new Map<string, ApiCase>();
+      backendCases.forEach((caseItem) => mergedCases.set(caseItem.case_id, caseItem));
+      localComplaints.forEach((complaint) => {
+        const localCase = localComplaintToCase(complaint);
+        const backendCase = mergedCases.get(localCase.case_id);
+        mergedCases.set(localCase.case_id, backendCase ? { ...localCase, ...backendCase } : localCase);
+      });
+      const cases = [...mergedCases.values()].filter(isActiveCase);
       setAllCases(cases);
       // Auto-select most recent case if none selected
       if (!activeId && cases.length > 0) {
@@ -84,13 +110,28 @@ export function LiveInvestigator({
 
   useEffect(() => {
     refreshCaseList();
+    const unsubscribe = policeService.subscribe(() => {
+      refreshCaseList();
+    });
+    const interval = setInterval(refreshCaseList, 8000);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   // Load active case details and locations
   useEffect(() => {
     if (!activeId) return;
     setError(null);
-    Promise.all([api.getCase(activeId), api.listLocations()])
+    const localCase = allCases.find((caseItem) => caseItem.case_id === activeId);
+    Promise.all([
+      api.getCase(activeId).catch(() => {
+        if (localCase) return localCase;
+        throw new Error("Case not found");
+      }),
+      api.listLocations(),
+    ])
       .then(([loadedCase, loadedLocations]) => {
         setCaseData(loadedCase);
         setLocations(loadedLocations);
@@ -102,17 +143,34 @@ export function LiveInvestigator({
       .catch(() =>
         setError("Unable to load this case from the intelligence service.")
       );
-  }, [activeId]);
+  }, [activeId, allCases]);
 
   const analyze = async () => {
     if (!activeId) return;
     setBusy(true);
     setError(null);
     try {
-      const pred = await api.analyzeCase(activeId);
+      let analysisCaseId = activeId;
+      try {
+        await api.getCase(activeId);
+      } catch {
+        const localCase = allCases.find((caseItem) => caseItem.case_id === activeId);
+        if (!localCase) throw new Error("Case not found");
+        const created = await api.createCase({
+          fraud_type: localCase.fraud_type,
+          amount: localCase.amount,
+          transaction_time: localCase.transaction_time,
+          destination_account: localCase.destination_account,
+        });
+        analysisCaseId = created.case_id;
+        setActiveId(analysisCaseId);
+        onCaseChange?.(analysisCaseId);
+      }
+
+      const pred = await api.analyzeCase(analysisCaseId);
       setPrediction(pred);
       // Refresh case to show updated ANALYZED status
-      const updated = await api.getCase(activeId);
+      const updated = await api.getCase(analysisCaseId);
       setCaseData(updated);
       refreshCaseList();
     } catch {
@@ -196,37 +254,35 @@ export function LiveInvestigator({
             Select a case from the dropdown above or click on any case below to begin predictive location analysis.
           </p>
 
-          {allCases.length > 0 && (
-            <div className="mt-6 max-w-2xl mx-auto divide-y divide-border border border-border text-left text-xs">
-              <div className="bg-muted/40 p-3 font-semibold text-muted-foreground">
-                Live Backend Cases ({allCases.length})
-              </div>
-              {allCases.map((c) => (
-                <div
-                  key={c.case_id}
-                  className="p-3 flex items-center justify-between hover:bg-muted/30"
-                >
-                  <div>
-                    <span className="font-bold text-primary">{c.case_id}</span>
-                    <span className="ml-2 font-medium text-foreground">
-                      {c.fraud_type.replaceAll("_", " ")}
-                    </span>
-                    <p className="text-muted-foreground mt-0.5">
-                      ₹{c.amount.toLocaleString("en-IN")} · Destination: {c.destination_account}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSelectCase(c.case_id)}
-                  >
-                    Select Case <ChevronRight size={12} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+      )}
+
+      {allCases.length > 0 && (
+        <section className="border border-border bg-card civic-shadow">
+          <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3">
+            <div>
+              <h2 className="font-bold text-foreground">Active and Live Case Requests</h2>
+              <p className="text-xs text-muted-foreground">All cases currently available to the investigator command unit</p>
+            </div>
+            <span className="text-xs font-bold text-primary">{allCases.length} active</span>
+          </div>
+          <div className="divide-y divide-border text-left text-xs">
+            {allCases.map((c) => (
+              <div key={c.case_id} className="flex items-center justify-between gap-4 p-3 hover:bg-muted/30">
+                <div className="min-w-0">
+                  <span className="font-bold text-primary">{c.case_id}</span>
+                  <span className="ml-2 font-medium text-foreground">{c.fraud_type.replaceAll("_", " ")}</span>
+                  <p className="mt-0.5 text-muted-foreground">
+                    ₹{c.amount.toLocaleString("en-IN")} · {c.status} · Destination: {c.destination_account}
+                  </p>
+                </div>
+                <Button size="sm" variant={activeId === c.case_id ? "default" : "outline"} onClick={() => handleSelectCase(c.case_id)}>
+                  {activeId === c.case_id ? "Viewing" : "View Case"} <ChevronRight size={12} />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Case Details Bar */}
@@ -300,6 +356,12 @@ export function LiveInvestigator({
                 FastAPI Predictive Intelligence Engine: Probabilistic spatial-temporal estimates calculated using transaction pattern correlation across monitored ATMs and mule account clusters.
               </p>
 
+              {prediction?.status === "INSUFFICIENT_DATA" && (
+                <p className="mt-4 border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                  Analysis completed, but this case needs linked transaction hops and cash-out history before locations can be ranked.
+                </p>
+              )}
+
               <div className="mt-5 flex items-center gap-3">
                 <Button
                   onClick={analyze}
@@ -328,7 +390,7 @@ export function LiveInvestigator({
             {/* Right: Ranked Candidate Locations */}
             <Panel title="Ranked Candidate Locations for Field Interception">
               <div className="space-y-3">
-                {prediction?.predictions.length ? (
+                {prediction?.predictions?.length ? (
                   prediction.predictions.map((item) => {
                     const location = locations.find(
                       (candidate) => candidate.location_id === item.location_id
@@ -350,7 +412,7 @@ export function LiveInvestigator({
                             <strong>{item.time_window}</strong>
                           </p>
                           <p className="mt-1.5 text-xs text-muted-foreground border-l-2 border-primary/40 pl-2">
-                            {item.explanation.join(" · ")}
+                            {(item.explanation ?? Object.entries(item.features ?? {}).map(([name, value]) => `${name.replaceAll("_", " ")}: ${Math.round(value * 100)}%`)).join(" · ")}
                           </p>
                         </div>
                         <strong className="text-lg font-extrabold text-destructive shrink-0">
@@ -375,14 +437,14 @@ export function LiveInvestigator({
           </div>
 
           {/* Withdrawal Network Map — full width */}
-          {prediction && prediction.predictions.length > 0 && (
+          {locations.length > 0 && (
             <section className="space-y-0">
               <div className="flex items-center gap-2 border border-border border-b-0 px-5 py-4 font-bold text-primary bg-card civic-shadow">
                 <Radar size={17} />
-                Cash-Out Location Network Graph
+                {prediction?.predictions?.length ? "Cash-Out Location Network Graph" : "Live Monitored Location Map"}
               </div>
               <WithdrawalNetworkMap
-                predictions={prediction.predictions}
+                predictions={prediction?.predictions ?? []}
                 locations={locations}
                 caseId={activeId ?? ""}
                 muleAccount={caseData?.destination_account ?? ""}
@@ -556,7 +618,7 @@ export function LiveIntelReport({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-xs">
-                  {prediction.predictions.map((item) => (
+                  {(prediction?.predictions ?? []).map((item) => (
                     <tr key={item.location_id}>
                       <td className="p-3 font-bold">#{item.rank}</td>
                       <td className="font-semibold text-foreground">

@@ -1,25 +1,394 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, CheckCircle2, Circle, Clock3, FileText, Mail, RefreshCw, ShieldCheck, Smartphone } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  FileText,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CitizenProfile } from "@/lib/api";
 
 export type ComplaintStatus = "Investigation in Progress" | "Verification in Progress" | "Closed";
-export type CitizenComplaint = { id: string; type: string; submitted: string; updated: string; status: ComplaintStatus; actionRequired: boolean };
-export const citizenComplaints: CitizenComplaint[] = [
-  { id: "NCRP-TG-2026-001245", type: "UPI Financial Fraud", submitted: "17 Sep 2026", updated: "17 Sep 2026, 11:02 AM", status: "Investigation in Progress", actionRequired: false },
-  { id: "NCRP-TG-2026-001104", type: "Online Shopping Fraud", submitted: "12 Sep 2026", updated: "14 Sep 2026, 03:20 PM", status: "Verification in Progress", actionRequired: true },
-  { id: "NCRP-TG-2026-000982", type: "Social Media Impersonation", submitted: "02 Sep 2026", updated: "06 Sep 2026, 04:45 PM", status: "Closed", actionRequired: false },
+export type CitizenComplaint = {
+  id: string;
+  type: string;
+  submitted: string;
+  updated: string;
+  status: ComplaintStatus;
+  actionRequired: boolean;
+};
+export const citizenComplaints: CitizenComplaint[] = [];
+const progress = [
+  "Complaint Submitted",
+  "Complaint Acknowledged",
+  "Complaint Verified",
+  "Assigned to Investigating Authority",
+  "Investigation in Progress",
+  "Financial / Bank Coordination",
+  "Recovery / Further Action",
+  "Investigation Completed",
+  "Case Closed",
 ];
-const progress = ["Complaint Submitted", "Complaint Acknowledged", "Complaint Verified", "Assigned to Investigating Authority", "Investigation in Progress", "Financial / Bank Coordination", "Recovery / Further Action", "Investigation Completed", "Case Closed"];
-const updates = [["17 Sep 2026 · 11:02 AM", "Investigation started"], ["17 Sep 2026 · 10:15 AM", "Complaint verified"], ["17 Sep 2026 · 09:48 AM", "Complaint successfully registered"]] as const;
-function Panel({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) { return <section className="border border-border bg-card civic-shadow"><div className="flex items-center gap-2 border-b border-border px-5 py-4 font-bold">{icon && <span className="text-primary">{icon}</span>}{title}</div><div className="p-5">{children}</div></section>; }
-function Badge({ status }: { status: ComplaintStatus }) { return <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold ${status === "Investigation in Progress" ? "bg-primary text-primary-foreground" : status === "Closed" ? "bg-muted" : "bg-accent"}`}><Circle size={9} fill="currentColor" />{status}</span>; }
-function Timeline({ current = 4 }: { current?: number }) { return <ol>{progress.map((label, index) => { const done = index < current; const active = index === current; return <li className="relative flex gap-3 pb-5 last:pb-0" key={label}>{index < progress.length - 1 && <span className={`absolute left-[11px] top-6 h-[calc(100%-10px)] w-px ${done ? "bg-primary" : "bg-border"}`} />}<span className={`z-10 grid size-6 shrink-0 place-items-center rounded-full border-2 ${done ? "border-primary bg-primary text-primary-foreground" : active ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>{done ? <CheckCircle2 size={13} /> : <Circle size={active ? 9 : 8} fill={active ? "currentColor" : "none"} />}</span><p className={`text-sm ${active ? "font-extrabold text-primary" : done ? "font-semibold" : "text-muted-foreground"}`}>{label}</p></li>; })}</ol>; }
-function Summary({ complaint }: { complaint: CitizenComplaint }) { return <Panel title="Complaint Summary" icon={<FileText size={18} />}><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><div className="lg:col-span-2"><p className="text-[10px] font-bold uppercase text-muted-foreground">Acknowledgement number</p><p className="mt-1 text-lg font-extrabold text-primary">{complaint.id}</p><p className="text-sm text-muted-foreground">{complaint.type}</p></div><div><p className="text-[10px] font-bold uppercase text-muted-foreground">Status</p><div className="mt-1"><Badge status={complaint.status} /></div></div><div><p className="text-[10px] font-bold uppercase text-muted-foreground">Filed on</p><p className="mt-1 text-sm font-semibold">{complaint.submitted}</p></div></div><p className="mt-5 border-t border-border pt-4 text-xs text-muted-foreground">Last updated: {complaint.updated}</p></Panel>; }
-function Updates() { return <Panel title="Recent Updates" icon={<Clock3 size={18} />}><ol className="space-y-4">{updates.map(([time, title], index) => <li className="flex gap-3" key={title}><span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-primary">{index ? <CheckCircle2 size={13} /> : <Bell size={13} />}</span><div><p className="text-xs text-muted-foreground">{time}</p><p className="text-sm font-bold">{title}</p></div></li>)}</ol></Panel>; }
-function Notifications() { return <Panel title="Stay Updated" icon={<Bell size={18} />}><p className="mb-4 text-sm text-muted-foreground">You will be notified when there is an important update to your complaint.</p><div className="space-y-3">{[[<Smartphone size={17} />, "SMS Notifications"], [<Mail size={17} />, "Email Notifications"]].map(([icon, label]) => <div className="flex items-center justify-between border border-border p-3" key={label as string}><span className="flex items-center gap-2 text-sm font-semibold">{icon}{label}</span><span className="text-xs font-bold text-emerald-700">ON</span></div>)}</div></Panel>; }
-function ActionRequired({ needed }: { needed: boolean }) { return <Panel title="Action Required" icon={<ShieldCheck size={18} />}><div className={`border-l-4 bg-muted p-4 ${needed ? "border-accent" : "border-emerald-600"}`}><p className="font-bold">{needed ? "Additional information required" : "No action required"}</p><p className="mt-1 text-sm text-muted-foreground">{needed ? "Additional information or documents may be required from you." : "You don't need to do anything at this time."}</p></div></Panel>; }
-function ComplaintList({ complaints, onView }: { complaints: CitizenComplaint[]; onView: (id: string) => void }) { return <Panel title="My Complaints" icon={<FileText size={18} />}><div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-muted text-[10px] uppercase text-muted-foreground"><tr><th className="p-3">Acknowledgement no.</th><th>Complaint type</th><th>Submitted</th><th>Status</th><th>Last updated</th><th /></tr></thead><tbody>{complaints.map((complaint) => <tr className="border-b border-border" key={complaint.id}><td className="p-3 font-bold text-primary">{complaint.id}</td><td>{complaint.type}</td><td>{complaint.submitted}</td><td><Badge status={complaint.status} /></td><td className="text-xs text-muted-foreground">{complaint.updated}</td><td><Button size="sm" variant="outline" onClick={() => onView(complaint.id)}>Track Complaint</Button></td></tr>)}</tbody></table></div></Panel>; }
-function Skeleton() { return <div className="space-y-6 animate-pulse"><div className="h-44 bg-muted" /><div className="grid gap-6 lg:grid-cols-2"><div className="h-[500px] bg-muted" /><div className="h-[500px] bg-muted" /></div></div>; }
-export function CitizenDashboard({ profile, complaints = citizenComplaints, onViewComplaint, onRegister }: { profile: CitizenProfile | null; complaints?: CitizenComplaint[]; onViewComplaint: (id: string) => void; onRegister: () => void }) { const [loading, setLoading] = useState(true); const primary = complaints[0] ?? citizenComplaints[0]; useEffect(() => { const timer = window.setTimeout(() => setLoading(false), 350); return () => window.clearTimeout(timer); }, []); if (loading) return <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8"><Skeleton /></main>; return <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8 sm:px-6"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase text-primary">Citizen services</p><h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Welcome, {profile?.full_name || "Citizen"}</h1><p className="mt-2 text-sm text-muted-foreground">Manage your complaints and track their progress.</p></div><Button onClick={onRegister}>+ Register New Complaint</Button></div><div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Active complaints", complaints.filter((item) => item.status !== "Closed").length], ["Resolved complaints", complaints.filter((item) => item.status === "Closed").length], ["Action required", complaints.filter((item) => item.actionRequired).length], ["Latest update", primary.updated.split(", ").at(-1) ?? primary.updated]].map(([label, value]) => <div className="border border-border bg-card p-4" key={label as string}><p className="text-xs font-bold uppercase text-muted-foreground">{label}</p><p className="mt-2 text-xl font-extrabold">{value}</p></div>)}</div><Summary complaint={primary}/><div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_.9fr]"><Panel title="Investigation Progress" icon={<ShieldCheck size={18} />}><Timeline /></Panel><div className="space-y-6"><Panel title="What's happening now?" icon={<Clock3 size={18} />}><p className="text-lg font-extrabold text-primary">Investigation in Progress</p><p className="mt-3 text-sm text-muted-foreground">Your complaint is currently being examined by the concerned authorities. You will be notified when there is a significant update.</p></Panel><ActionRequired needed={primary.actionRequired}/><Updates/><Notifications/></div></div><section className="mt-6"><ComplaintList complaints={complaints} onView={onViewComplaint}/></section></main>; }
-export function CitizenComplaintDetails({ complaints = citizenComplaints, complaintId, onBack, onRegister }: { complaints?: CitizenComplaint[]; complaintId: string; onBack: () => void; onRegister: () => void }) { const complaint = complaints.find((item) => item.id === complaintId) ?? complaints[0] ?? citizenComplaints[0]; return <main className="mx-auto min-h-[700px] max-w-[1100px] px-4 py-8 sm:px-6"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase text-primary">Citizen complaint details</p><h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{complaint.id}</h1></div><div className="flex gap-2"><Button variant="outline" onClick={onBack}>Back to dashboard</Button><Button onClick={onRegister}>Register a Complaint</Button></div></div><Summary complaint={complaint}/><div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><Panel title="Investigation Progress" icon={<ShieldCheck size={18} />}><Timeline current={complaint.status === "Closed" ? 8 : complaint.status === "Verification in Progress" ? 2 : 4}/></Panel><div className="space-y-6"><Updates/><ActionRequired needed={complaint.actionRequired}/><Notifications/></div></div></main>; }
+const updates: ReadonlyArray<readonly [string, string]> = [];
+function Panel({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border border-border bg-card civic-shadow">
+      <div className="flex items-center gap-2 border-b border-border px-5 py-4 font-bold">
+        {icon && <span className="text-primary">{icon}</span>}
+        {title}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+function Badge({ status }: { status: ComplaintStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold ${status === "Investigation in Progress" ? "bg-primary text-primary-foreground" : status === "Closed" ? "bg-muted" : "bg-accent"}`}
+    >
+      <Circle size={9} fill="currentColor" />
+      {status}
+    </span>
+  );
+}
+function Timeline({ current = 4 }: { current?: number }) {
+  return (
+    <ol>
+      {progress.map((label, index) => {
+        const done = index < current;
+        const active = index === current;
+        return (
+          <li className="relative flex gap-3 pb-5 last:pb-0" key={label}>
+            {index < progress.length - 1 && (
+              <span
+                className={`absolute left-[11px] top-6 h-[calc(100%-10px)] w-px ${done ? "bg-primary" : "bg-border"}`}
+              />
+            )}
+            <span
+              className={`z-10 grid size-6 shrink-0 place-items-center rounded-full border-2 ${done ? "border-primary bg-primary text-primary-foreground" : active ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
+            >
+              {done ? (
+                <CheckCircle2 size={13} />
+              ) : (
+                <Circle size={active ? 9 : 8} fill={active ? "currentColor" : "none"} />
+              )}
+            </span>
+            <p
+              className={`text-sm ${active ? "font-extrabold text-primary" : done ? "font-semibold" : "text-muted-foreground"}`}
+            >
+              {label}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+function Summary({ complaint }: { complaint: CitizenComplaint }) {
+  return (
+    <Panel title="Complaint Summary" icon={<FileText size={18} />}>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="lg:col-span-2">
+          <p className="text-[10px] font-bold uppercase text-muted-foreground">
+            Acknowledgement number
+          </p>
+          <p className="mt-1 text-lg font-extrabold text-primary">{complaint.id}</p>
+          <p className="text-sm text-muted-foreground">{complaint.type}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground">Status</p>
+          <div className="mt-1">
+            <Badge status={complaint.status} />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground">Filed on</p>
+          <p className="mt-1 text-sm font-semibold">{complaint.submitted}</p>
+        </div>
+      </div>
+      <p className="mt-5 border-t border-border pt-4 text-xs text-muted-foreground">
+        Last updated: {complaint.updated}
+      </p>
+    </Panel>
+  );
+}
+function Updates() {
+  return (
+    <Panel title="Recent Updates" icon={<Clock3 size={18} />}>
+      <ol className="space-y-4">
+        {updates.map(([time, title], index) => (
+          <li className="flex gap-3" key={title}>
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-primary">
+              {index ? <CheckCircle2 size={13} /> : <Bell size={13} />}
+            </span>
+            <div>
+              <p className="text-xs text-muted-foreground">{time}</p>
+              <p className="text-sm font-bold">{title}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  );
+}
+function Notifications() {
+  return (
+    <Panel title="Stay Updated" icon={<Bell size={18} />}>
+      <p className="mb-4 text-sm text-muted-foreground">
+        You will be notified when there is an important update to your complaint.
+      </p>
+      <div className="space-y-3">
+        {[
+          [<Smartphone size={17} />, "SMS Notifications"],
+          [<Mail size={17} />, "Email Notifications"],
+        ].map(([icon, label]) => (
+          <div
+            className="flex items-center justify-between border border-border p-3"
+            key={label as string}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              {icon}
+              {label}
+            </span>
+            <span className="text-xs font-bold text-emerald-700">ON</span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+function ActionRequired({ needed }: { needed: boolean }) {
+  return (
+    <Panel title="Action Required" icon={<ShieldCheck size={18} />}>
+      <div className={`border-l-4 bg-muted p-4 ${needed ? "border-accent" : "border-emerald-600"}`}>
+        <p className="font-bold">
+          {needed ? "Additional information required" : "No action required"}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {needed
+            ? "Additional information or documents may be required from you."
+            : "You don't need to do anything at this time."}
+        </p>
+      </div>
+    </Panel>
+  );
+}
+function ComplaintList({
+  complaints,
+  onView,
+}: {
+  complaints: CitizenComplaint[];
+  onView: (id: string) => void;
+}) {
+  return (
+    <Panel title="My Complaints" icon={<FileText size={18} />}>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[700px] text-left text-sm">
+          <thead className="bg-muted text-[10px] uppercase text-muted-foreground">
+            <tr>
+              <th className="p-3">Acknowledgement no.</th>
+              <th>Complaint type</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Last updated</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {complaints.map((complaint) => (
+              <tr className="border-b border-border" key={complaint.id}>
+                <td className="p-3 font-bold text-primary">{complaint.id}</td>
+                <td>{complaint.type}</td>
+                <td>{complaint.submitted}</td>
+                <td>
+                  <Badge status={complaint.status} />
+                </td>
+                <td className="text-xs text-muted-foreground">{complaint.updated}</td>
+                <td>
+                  <Button size="sm" variant="outline" onClick={() => onView(complaint.id)}>
+                    Track Complaint
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+function Skeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-44 bg-muted" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="h-[500px] bg-muted" />
+        <div className="h-[500px] bg-muted" />
+      </div>
+    </div>
+  );
+}
+export function CitizenDashboard({
+  profile,
+  complaints = citizenComplaints,
+  onViewComplaint,
+  onRegister,
+}: {
+  profile: CitizenProfile | null;
+  complaints?: CitizenComplaint[];
+  onViewComplaint: (id: string) => void;
+  onRegister: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const primary = complaints[0];
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoading(false), 350);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (loading)
+    return (
+      <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8">
+        <Skeleton />
+      </main>
+    );
+  if (!primary)
+    return (
+      <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8 sm:px-6">
+        <div className="border border-border bg-card p-8 text-center">
+          <FileText className="mx-auto text-muted-foreground" size={32} />
+          <h1 className="mt-3 text-xl font-bold">No complaints registered</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your submitted complaints will appear here.
+          </p>
+          <Button className="mt-5" onClick={onRegister}>
+            Register a Complaint
+          </Button>
+        </div>
+      </main>
+    );
+  return (
+    <main className="mx-auto min-h-[700px] max-w-[1440px] px-4 py-8 sm:px-6">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase text-primary">Citizen services</p>
+          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
+            Welcome, {profile?.full_name || "Citizen"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Manage your complaints and track their progress.
+          </p>
+        </div>
+        <Button onClick={onRegister}>+ Register New Complaint</Button>
+      </div>
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ["Active complaints", complaints.filter((item) => item.status !== "Closed").length],
+          ["Resolved complaints", complaints.filter((item) => item.status === "Closed").length],
+          ["Action required", complaints.filter((item) => item.actionRequired).length],
+          ["Latest update", primary.updated.split(", ").at(-1) ?? primary.updated],
+        ].map(([label, value]) => (
+          <div className="border border-border bg-card p-4" key={label as string}>
+            <p className="text-xs font-bold uppercase text-muted-foreground">{label}</p>
+            <p className="mt-2 text-xl font-extrabold">{value}</p>
+          </div>
+        ))}
+      </div>
+      <Summary complaint={primary} />
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
+        <Panel title="Investigation Progress" icon={<ShieldCheck size={18} />}>
+          <Timeline />
+        </Panel>
+        <div className="space-y-6">
+          <Panel title="What's happening now?" icon={<Clock3 size={18} />}>
+            <p className="text-lg font-extrabold text-primary">Investigation in Progress</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Your complaint is currently being examined by the concerned authorities. You will be
+              notified when there is a significant update.
+            </p>
+          </Panel>
+          <ActionRequired needed={primary.actionRequired} />
+          <Updates />
+          <Notifications />
+        </div>
+      </div>
+      <section className="mt-6">
+        <ComplaintList complaints={complaints} onView={onViewComplaint} />
+      </section>
+    </main>
+  );
+}
+export function CitizenComplaintDetails({
+  complaints = citizenComplaints,
+  complaintId,
+  onBack,
+  onRegister,
+}: {
+  complaints?: CitizenComplaint[];
+  complaintId: string;
+  onBack: () => void;
+  onRegister: () => void;
+}) {
+  const complaint = complaints.find((item) => item.id === complaintId) ?? complaints[0];
+  if (!complaint)
+    return (
+      <main className="mx-auto min-h-[700px] max-w-[1100px] px-4 py-8 sm:px-6">
+        <div className="border border-border bg-card p-8 text-center">
+          <h1 className="text-xl font-bold">Complaint not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Register a complaint to create a trackable case.
+          </p>
+          <Button className="mt-5" onClick={onRegister}>
+            Register a Complaint
+          </Button>
+        </div>
+      </main>
+    );
+  return (
+    <main className="mx-auto min-h-[700px] max-w-[1100px] px-4 py-8 sm:px-6">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase text-primary">Citizen complaint details</p>
+          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{complaint.id}</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onBack}>
+            Back to dashboard
+          </Button>
+          <Button onClick={onRegister}>Register a Complaint</Button>
+        </div>
+      </div>
+      <Summary complaint={complaint} />
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+        <Panel title="Investigation Progress" icon={<ShieldCheck size={18} />}>
+          <Timeline
+            current={
+              complaint.status === "Closed"
+                ? 8
+                : complaint.status === "Verification in Progress"
+                  ? 2
+                  : 4
+            }
+          />
+        </Panel>
+        <div className="space-y-6">
+          <Updates />
+          <ActionRequired needed={complaint.actionRequired} />
+          <Notifications />
+        </div>
+      </div>
+    </main>
+  );
+}

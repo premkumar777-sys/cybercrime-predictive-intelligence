@@ -7,16 +7,9 @@ import type {
   ComplaintStatus,
   PoliceActionLog,
 } from "@/types/police";
-import {
-  initialPoliceComplaints,
-  initialStationInfo,
-  initialPriorityAlerts,
-  initialRecentActivities,
-  initialStats,
-} from "@/data/policeDemoData";
 import { api, type ApiCase } from "@/lib/api";
 
-const STORAGE_KEY = "tg_police_live_complaints_v1";
+const STORAGE_KEY = "tg_police_live_complaints_v2";
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -40,11 +33,11 @@ function saveToStorage<T>(key: string, value: T) {
 // In-memory frontend state store initialized from localStorage or defaults
 let complaintsState: PoliceComplaint[] = loadFromStorage(
   STORAGE_KEY,
-  [...initialPoliceComplaints]
+  []
 );
-let alertsState: PriorityAlert[] = [...initialPriorityAlerts];
-let activitiesState: RecentActivity[] = [...initialRecentActivities];
-let stationState: PoliceStationInfo = { ...initialStationInfo };
+let alertsState: PriorityAlert[] = [];
+let activitiesState: RecentActivity[] = [];
+let stationState: PoliceStationInfo | null = null;
 
 // Listeners for reactivity
 type StateListener = () => void;
@@ -184,9 +177,9 @@ export const policeService = {
     }
   },
 
-  async getStationInfo(): Promise<PoliceStationInfo> {
+  async getStationInfo(): Promise<PoliceStationInfo | null> {
     await new Promise((r) => setTimeout(r, 40));
-    return { ...stationState };
+    return stationState ? { ...stationState } : null;
   },
 
   async getDashboardStats(): Promise<PoliceDashboardStats> {
@@ -212,7 +205,7 @@ export const policeService = {
       highPriority: highPriorityCount,
       resolved: resolvedCount,
       pendingInfo: pendingInfoCount,
-      totalLossRecoveredOrFrozen: initialStats.totalLossRecoveredOrFrozen,
+      totalLossRecoveredOrFrozen: "₹0",
     };
   },
 
@@ -269,6 +262,12 @@ export const policeService = {
     }
 
     return list;
+  },
+
+  /** Return the current queue so other staff workspaces see the same cases. */
+  async getAllComplaints(): Promise<PoliceComplaint[]> {
+    await new Promise((r) => setTimeout(r, 20));
+    return [...complaintsState];
   },
 
   async getComplaintById(idOrAck: string): Promise<PoliceComplaint | null> {
@@ -413,10 +412,10 @@ export const policeService = {
   },
 
   resetDemoData() {
-    complaintsState = [...initialPoliceComplaints];
-    alertsState = [...initialPriorityAlerts];
-    activitiesState = [...initialRecentActivities];
-    stationState = { ...initialStationInfo };
+    complaintsState = [];
+    alertsState = [];
+    activitiesState = [];
+    stationState = null;
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
