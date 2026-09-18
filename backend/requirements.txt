@@ -9,7 +9,8 @@ scikit-learn
 joblib
 faker
 PyJWT
+python-jose[cryptography]
 passlib[bcrypt]
-bcrypt
+bcrypt<4
 python-multipart
 supabase

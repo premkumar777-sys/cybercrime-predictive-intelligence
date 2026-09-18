@@ -143,18 +143,20 @@ class Repository:
     def add_prediction(self, case_id: str, prediction_data: dict):
         pred_model = self.db.query(PredictionModel).filter(PredictionModel.case_id == case_id).first()
         
-        # Format predictions into list of PredictionItem dicts if not already
+        # Persist the prediction service's ranked items in the API response shape.
         preds_list = []
-        if "candidates" in prediction_data:
-            for c in prediction_data["candidates"]:
-                preds_list.append({
-                    "location_id": c["location_id"],
-                    "location_name": c["name"],
-                    "risk_score": float(c["risk_score"]),
-                    "rank": int(c["rank"]),
-                    "time_window": c["time_window"],
-                    "features": c["features"]
-                })
+        candidates = prediction_data.get("predictions", prediction_data.get("candidates", []))
+        for c in candidates:
+            location_name = c.get("location_name", c.get("name", "Unknown location"))
+            features = c.get("features", {})
+            preds_list.append({
+                "location_id": c["location_id"],
+                "location_name": location_name,
+                "risk_score": float(c["risk_score"]),
+                "rank": int(c["rank"]),
+                "time_window": c["time_window"],
+                "features": features,
+            })
         
         if not pred_model:
             pred_model = PredictionModel(
@@ -176,7 +178,7 @@ class Repository:
             
         case = self.db.query(CaseModel).filter(CaseModel.case_id == case_id).first()
         if case:
-            case.status = "ANALYZED"
+            case.status = "ANALYZED" if prediction_data.get("status") == "COMPLETED" else prediction_data.get("status", "ANALYZED")
         
         self.db.commit()
 

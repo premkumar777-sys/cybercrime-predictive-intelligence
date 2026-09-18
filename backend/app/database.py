@@ -16,7 +16,7 @@ if os.environ.get("IS_TEST_ENV") == "true":
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 else:
-    SQLALCHEMY_DATABASE_URL = os.environ.get("DIRECT_URL")
+    SQLALCHEMY_DATABASE_URL = os.environ.get("DIRECT_URL") or f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'cybercrime.db')}"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         pool_pre_ping=True
