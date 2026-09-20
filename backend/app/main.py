@@ -5,12 +5,15 @@ from sqlalchemy.orm import Session
 from .schemas import CaseCreate, CitizenRegistration, CitizenRegistrationResponse, LoginRequest, LoginResponse, PredictionResponse
 from .container import predictor
 from .database import get_db, Base, engine
+from . import models
 from .repositories.repository import Repository
 from .services.notification_service import notifier
 from .services.blockchain_service import blockchain_service
 from .services.auth_service import verify_password, create_access_token, decode_access_token
 
 app = FastAPI(title="Cybercrime Predictive Intelligence API")
+
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,8 +63,9 @@ def require_role(allowed_roles: list):
 @app.on_event("startup")
 def startup_event():
     # Create tables if they don't exist
-    # Schema changes are now managed by Alembic, so we don't automatically create tables here.
-    pass
+    from . import models
+    Base.metadata.create_all(bind=engine)
+
     # Seed locations using a short-lived session
     from .database import SessionLocal
     db = SessionLocal()
@@ -130,7 +134,7 @@ def get_case(case_id: str, db: Session = Depends(get_db), current_user: dict = D
 
 
 @app.post("/cases/{case_id}/analyze")
-def analyze_case(case_id: str, db: Session = Depends(get_db), current_user: dict = Depends(require_role(["investigator", "police"]))):
+def analyze_case(case_id: str, db: Session = Depends(get_db), current_user: dict = Depends(require_role(["investigator"]))):
     repo = Repository(db)
     case = repo.get_case(case_id, current_user)
     if not case:

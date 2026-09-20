@@ -78,11 +78,12 @@ class Repository:
         
         if role == "citizen":
             query = query.filter(CaseModel.citizen_email == email)
-        elif role in ["police", "investigator"]:
-            # Police and investigators see all cases
-            pass
+        elif role == "police":
+            query = query.filter((CaseModel.police_email == email) | (CaseModel.police_email.is_(None)))
+        elif role == "investigator":
+            query = query.filter((CaseModel.investigator_email == email) | (CaseModel.investigator_email.is_(None)))
         else:
-            return [] # Unknown role gets nothing
+            return []
 
         cases = query.all()
         return [
@@ -105,9 +106,10 @@ class Repository:
         
         if role == "citizen":
             query = query.filter(CaseModel.citizen_email == email)
-        elif role in ["police", "investigator"]:
-            # Police and investigators see all cases
-            pass
+        elif role == "police":
+            query = query.filter((CaseModel.police_email == email) | (CaseModel.police_email.is_(None)))
+        elif role == "investigator":
+            query = query.filter((CaseModel.investigator_email == email) | (CaseModel.investigator_email.is_(None)))
         else:
             return None
             
