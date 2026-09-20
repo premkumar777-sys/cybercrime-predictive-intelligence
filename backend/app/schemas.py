@@ -69,7 +69,7 @@ class CitizenRegistration(BaseModel):
     full_name: str
     phone: str
     email: str
-    password: str
+    password: str = "password123"
     identity_type: str
     identity_number: str
 

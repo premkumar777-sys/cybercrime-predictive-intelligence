@@ -14,20 +14,16 @@ export type PredictionItem = {
   risk_score: number;
   rank: number;
   time_window: string;
-  features: Record<string, number>;
+  explanation?: string[];
+  features?: Record<string, number>;
 };
 
-export interface Prediction {
+export type Prediction = {
   case_id: string;
   risk_level: string;
   predictions: PredictionItem[];
   status?: string;
-  reason?: string;
-  transaction_path?: string[];
-  graph?: {
-    nodes: { id: string; group: string }[];
-    links: { source: string; target: string }[];
-  };
+  reason?: string | null;
 };
 
 export type Location = {
@@ -55,12 +51,27 @@ export type CitizenProfile = {
   returning_citizen: boolean;
 };
 
-const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8000";
+export type CitizenRegistrationPayload = Omit<CitizenProfile, "returning_citizen"> & {
+  password: string;
+};
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(init?.headers as Record<string, string> ?? {}),
+  };
+  
+  // Set default Content-Type if not sending FormData
+  if (!(init?.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers,
   });
   if (!response.ok) throw new Error((await response.text()) || `Request failed: ${response.status}`);
   return response.json() as Promise<T>;
@@ -104,58 +115,45 @@ export type AuditVerification = {
 };
 
 export const api = {
-  registerCitizen: (payload: Omit<CitizenProfile, "returning_citizen"> & { password?: string }) =>
+  registerCitizen: (payload: CitizenRegistrationPayload) =>
     request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
-  login: (payload: { email: string; password?: string; role?: UserRole }) =>
-    request<{ access_token: string; user: AuthUser }>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
-  listCases: () => {
-    const token = localStorage.getItem("token");
-    return request<ApiCase[]>("/cases", { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
-  },
-  getCase: (caseId: string) => {
-    const token = localStorage.getItem("token");
-    return request<ApiCase>(`/cases/${encodeURIComponent(caseId)}`, { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
-  },
-  getPrediction: (caseId: string) => {
-    const token = localStorage.getItem("token");
-    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/predictions`, { ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
-  },
-  analyzeCase: (caseId: string) => {
-    const token = localStorage.getItem("token");
-    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/analyze`, { method: "POST", ...(token && { headers: { "Authorization": `Bearer ${token}` } }) });
-  },
-  listLocations: () => request<Location[]>("/locations"),
-  createCase: (payload: { fraud_type: string; amount: number; transaction_time: string; destination_account: string }) => {
-    const token = localStorage.getItem("token");
-    return request<{ case_id: string; status: string }>("/cases", {
+  login: async (payload: { email: string; role: UserRole; password?: string }): Promise<AuthUser> => {
+    const res = await request<{ access_token?: string; user?: AuthUser } | AuthUser>("/auth/login", {
       method: "POST",
-      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ email: payload.email, password: payload.password ?? "password123", role: payload.role }),
     });
+    if ("access_token" in res && res.access_token) {
+      localStorage.setItem("token", res.access_token);
+      return res.user!;
+    }
+    return res as AuthUser;
   },
   getAuditTrail: (caseId: string) => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     return request<AuditBlock[]>(`/cases/${encodeURIComponent(caseId)}/audit-trail`, {
       ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
     });
   },
   verifyAuditTrail: (caseId: string) => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     return request<AuditVerification>(`/cases/${encodeURIComponent(caseId)}/verify-audit`, {
       method: "POST",
       ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
     });
   },
   getEvidence: (caseId: string) => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     return request<any[]>(`/cases/${encodeURIComponent(caseId)}/evidence`, {
       ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
     });
   },
-  uploadEvidence: async (caseId: string, file: File) => {
-    const token = localStorage.getItem("token");
-    const formData = new FormData();
-    formData.append("file", file);
+  uploadEvidence: async (caseId: string, fileOrFormData: File | FormData) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const formData = fileOrFormData instanceof FormData ? fileOrFormData : (() => {
+      const fd = new FormData();
+      fd.append("file", fileOrFormData);
+      return fd;
+    })();
     
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -170,12 +168,6 @@ export const api = {
       throw new Error(err.detail || "Upload failed");
     }
     return response.json();
-  },
-  downloadEvidence: (caseId: string, evidenceId: string) => {
-    const token = localStorage.getItem("token");
-    return request<any>(`/cases/${encodeURIComponent(caseId)}/evidence/${encodeURIComponent(evidenceId)}/download`, {
-      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
-    });
   },
 };
 
