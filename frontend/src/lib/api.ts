@@ -121,6 +121,39 @@ export const api = {
       ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
     });
   },
+  getCase: (caseId: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<ApiCase>(`/cases/${encodeURIComponent(caseId)}`, {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  createCase: (payload: any) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<{ case_id: string; status: string }>("/cases", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  analyzeCase: (caseId: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/analyze`, {
+      method: "POST",
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  getPrediction: (caseId: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<Prediction>(`/cases/${encodeURIComponent(caseId)}/predictions`, {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
+  listLocations: () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<Location[]>("/locations", {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
   registerCitizen: (payload: CitizenRegistrationPayload) =>
     request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
   login: async (payload: { email: string; role: UserRole; password?: string }): Promise<AuthUser> => {
