@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CircleDot,
   Clock3,
+  ChevronDown,
   Download,
   FileCheck2,
   FileText,
@@ -360,135 +361,180 @@ function Landing({
   ];
   return (
     <main>
-      {/* Official Sub-Navigation Bar (Portal Style) */}
-      <div className="bg-[#0070ba] text-white border-b border-[#005a96]">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 text-xs font-semibold overflow-x-auto sm:px-6">
-          <div className="flex items-center space-x-1 py-1.5 whitespace-nowrap">
-            <button
-              onClick={() => go("landing")}
-              className="bg-sky-900/60 px-3 py-1.5 rounded-xs flex items-center gap-1.5 hover:bg-sky-900"
-            >
-              <Home size={14} /> Home
-            </button>
-            <button
-              onClick={() => onRegister("Financial fraud")}
-              className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
-            >
-              Register a Complaint
-            </button>
-            <button
-              onClick={onTrack}
-              className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
-            >
-              Track your Complaint
-            </button>
-            <a
-              href="#safety-measures"
-              className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
-            >
-              Learning Corner
-            </a>
-            <button
-              onClick={() => go("login")}
-              className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
-            >
-              Staff Portal Login
-            </button>
-          </div>
-          <div className="hidden lg:flex items-center gap-2 text-[11px] py-1">
-            <span className="bg-amber-400 text-slate-950 px-2 py-0.5 font-extrabold rounded-xs">
-              Helpline: 1930
-            </span>
-            <span>Toll Free 24x7</span>
+      {/* Full Viewport Initial Landing Screen */}
+      <section className="relative min-h-[calc(100vh-105px)] flex flex-col justify-between bg-gradient-to-r from-[#021838] via-[#052c64] to-[#021838] text-white border-b border-border shadow-md">
+        {/* Official Sub-Navigation Bar (Portal Style) */}
+        <div className="bg-[#0070ba] text-white border-b border-[#005a96] z-10">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 text-xs font-semibold overflow-x-auto sm:px-6">
+            <div className="flex items-center space-x-1 py-1.5 whitespace-nowrap">
+              <button
+                onClick={() => go("landing")}
+                className="bg-sky-900/60 px-3 py-1.5 rounded-xs flex items-center gap-1.5 hover:bg-sky-900"
+              >
+                <Home size={14} /> Home
+              </button>
+              <button
+                onClick={() => onRegister("Financial fraud")}
+                className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
+              >
+                Register a Complaint
+              </button>
+              <button
+                onClick={onTrack}
+                className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
+              >
+                Track your Complaint
+              </button>
+              <a
+                href="#safety-measures"
+                className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
+              >
+                Learning Corner
+              </a>
+              <button
+                onClick={() => go("login")}
+                className="px-3 py-1.5 hover:bg-sky-800 rounded-xs flex items-center gap-1"
+              >
+                Staff Portal Login
+              </button>
+            </div>
+            <div className="hidden lg:flex items-center gap-3 text-[11px] py-1">
+              <span className="bg-amber-400 text-slate-950 px-2 py-0.5 font-extrabold rounded-xs">
+                Helpline: 1930
+              </span>
+              <span>Toll Free 24x7</span>
+              <div className="h-7 border-l border-sky-300/40 pl-3 flex items-center">
+                <img
+                  src="/ministry-of-home-affairs.png"
+                  alt="Ministry of Home Affairs"
+                  className="h-6 w-auto object-contain"
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Official Government Hero Banner (I4C / Cyber Crime Portal Style) */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#031b3b] via-[#072a5a] to-[#041d40] text-white border-b border-border shadow-md">
-        <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+        {/* Hero Banner Content (Centered Vertically) */}
+        <div className="relative flex-1 flex flex-col justify-between overflow-hidden py-6 sm:py-8">
+          <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
 
-        <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:py-10">
-          <div className="grid gap-8 lg:grid-cols-12 items-center">
-            {/* Left Column: Official Seals & Core National / State Message */}
-            <div className="lg:col-span-8 space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center gap-1.5 bg-sky-950/80 border border-sky-600/40 px-3 py-1 text-[11px] font-bold tracking-wider uppercase text-sky-300 rounded-xs">
-                  <ShieldCheck size={14} className="text-sky-400" />
-                  National Cyber Crime Reporting Portal.
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
-                  ఆధునిక సాంకేతిక పరిజ్ఞానంతో సైబర్ భద్రత · సైబర్ స్వచ్ఛత పాటించండి
-                </p>
-                <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
-                  ऑनलाइन साइबर अपराध और वित्तीय धोखाधड़ी की सुरक्षित रूप से रिपोर्ट करें
-                </p>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-snug tracking-tight text-white">
-                  Report Online Cyber Crime & Financial Fraud Securely
-                </h1>
-                <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed max-w-2xl">
-                  File cybercrime complaints directly without signing in. Authorized police and
-                  intelligence officers can access the secure operational portal.
-                </p>
-              </div>
-
-              <div className="pt-2 flex flex-wrap gap-3">
-                <Button
-                  onClick={() => onRegister("Financial fraud")}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 h-10 shadow-md gap-1.5"
-                >
-                  Register a Complaint <ArrowRight size={15} />
-                </Button>
-                <Button
-                  onClick={onTrack}
-                  variant="outline"
-                  className="border-sky-300/40 bg-sky-950/60 text-white hover:bg-sky-900 font-semibold px-5 h-10 gap-1.5"
-                >
-                  <Search size={15} /> Track Application
-                </Button>
-              </div>
+          {/* Top Banner Row: MHA Logo positioned at Right Top Most */}
+          <div className="mx-auto max-w-[1440px] w-full px-4 sm:px-6 flex justify-between items-center z-10">
+            <div className="flex items-center gap-2">
+              <img
+                src="/telangana-cybercrime-logo.jpeg"
+                alt="Telangana Seal"
+                className="h-9 w-9 rounded-full border border-sky-300/40 object-cover shadow-sm"
+              />
+              <span className="text-xs font-bold uppercase tracking-wider text-sky-200 hidden sm:inline-block">
+                Ministry of Home Affairs · Telangana Cybercrime Platform
+              </span>
             </div>
+            <div className="flex items-center">
+              <img
+                src="/ministry-of-home-affairs.png"
+                alt="Ministry of Home Affairs"
+                className="h-10 sm:h-12 w-auto object-contain drop-shadow-md"
+              />
+            </div>
+          </div>
 
-            {/* Right Column: 1930 Emergency Helpline Badge (Screenshot Matching Style) */}
-            <div className="lg:col-span-4 flex justify-center lg:justify-end">
-              <div className="w-full max-w-sm rounded-full border-4 border-sky-400/40 bg-gradient-to-b from-[#0a3568] to-[#041d40] p-6 text-center shadow-2xl relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full shadow-sm">
-                  24x7 Citizen Helpline
+          {/* Main Content Grid */}
+          <div className="mx-auto max-w-[1440px] w-full px-4 sm:px-6 my-auto py-4">
+            <div className="grid gap-8 lg:grid-cols-12 items-center">
+              {/* Left Column: Core Message & Actions */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
+                    ఆధునిక సాంకేతిక పరిజ్ఞానంతో సైబర్ భద్రత · సైబర్ స్వచ్ఛత పాటించండి
+                  </p>
+                  <p className="text-xs sm:text-sm font-semibold text-sky-200 tracking-wide">
+                    ऑनलाइन साइबर अपराध और वित्तीय धोखाधड़ी की सुरक्षित रूप से रिपोर्ट करें
+                  </p>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-snug tracking-tight text-white">
+                    Report Online Cyber Crime & Financial Fraud Securely
+                  </h1>
                 </div>
-                <p className="text-xs font-semibold text-sky-200 mt-1">
-                  ఆర్థిక మోసాల గురించి ఫిర్యాదు చేయడానికి కాల్ చేయండి
-                </p>
-                <p className="text-xs font-semibold text-sky-200 mt-1">
-                  वित्तीय धोखाधड़ी की रिपोर्ट करने के लिए कॉल करें
-                </p>
-                <p className="text-[11px] text-sky-300">To Report Financial Fraud Call</p>
-                <div className="my-2 py-1">
-                  <span className="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-md">
-                    1930
-                  </span>
+
+                <div className="pt-2 flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => onRegister("Financial fraud")}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 h-11 shadow-md gap-1.5 text-base"
+                  >
+                    Register a Complaint <ArrowRight size={16} />
+                  </Button>
+                  <Button
+                    onClick={onTrack}
+                    variant="outline"
+                    className="border-sky-300/40 bg-sky-950/60 text-white hover:bg-sky-900 font-semibold px-5 h-11 gap-1.5 text-base"
+                  >
+                    <Search size={16} /> Track Application
+                  </Button>
                 </div>
-                <p className="text-xs font-bold text-cyan-300">cybercrime.gov.in</p>
-                <p className="text-[10px] text-sky-200/80 mt-1">
-                  National Cyber Crime Helpline · Golden Hour Response
-                </p>
+              </div>
+
+              {/* Central Column: 75 Azadi Ka Amrit Mahotsav Image centered as in 2nd image */}
+              <div className="lg:col-span-3 flex justify-center items-center py-4">
+                <div className="flex flex-col items-center">
+                  <img
+                    src="/azadi-ka-amrit-mahotsav.png"
+                    alt="80 Azadi Ka Amrit Mahotsav"
+                    className="h-32 sm:h-36 lg:h-40 w-auto object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: 1930 Emergency Helpline Badge */}
+              <div className="lg:col-span-4 flex justify-center lg:justify-end">
+                <div className="w-full max-w-sm rounded-full border-4 border-sky-400/40 bg-gradient-to-b from-[#0a3568] to-[#041d40] p-6 text-center shadow-2xl relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full shadow-sm">
+                    24x7 Citizen Helpline
+                  </div>
+                  <p className="text-xs font-semibold text-sky-200 mt-1">
+                    ఆర్థిక మోసాల గురించి ఫిర్యాదు చేయడానికి కాల్ చేయండి
+                  </p>
+                  <p className="text-xs font-semibold text-sky-200 mt-1">
+                    वित्तीय धोखाधड़ी की रिपोर्ट करने के लिए कॉल करें
+                  </p>
+                  <p className="text-[11px] text-sky-300">To Report Financial Fraud Call</p>
+                  <div className="my-2 py-1">
+                    <span className="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-md">
+                      1930
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-cyan-300">cybercrime.gov.in</p>
+                  <p className="text-[10px] text-sky-200/80 mt-1">
+                    National Cyber Crime Helpline · Golden Hour Response
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Scroll Down Hint */}
+        <div className="pb-4 pt-2 text-center z-10">
+          <button
+            onClick={() => {
+              document.getElementById("categories")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="inline-flex flex-col items-center text-xs font-medium text-sky-200/80 hover:text-white transition-colors bg-transparent border-none cursor-pointer"
+          >
+            <span>Scroll down for complaint categories &amp; features</span>
+            <ChevronDown className="h-4 w-4 animate-bounce mt-1 text-cyan-400" />
+          </button>
         </div>
       </section>
 
       {/* Complaint Categories Section */}
-      <section className="border-b border-border bg-card">
+      <section id="categories" className="border-b border-border bg-card">
         <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6">
           <div className="grid gap-6 lg:grid-cols-3">
             {[
               {
                 title: "Social media fraud",
                 category: "Social Media Fraud",
-                image: "/complaint-cards/social-media-fraud.png",
+                image: "/complaint-cards/social-media-fraud.jpg",
                 description:
                   "Report impersonation, fake profiles, social harassment, and online scams.",
               },
