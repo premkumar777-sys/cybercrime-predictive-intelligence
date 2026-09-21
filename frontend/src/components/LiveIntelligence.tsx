@@ -146,13 +146,17 @@ export function LiveInvestigator({
         setAuditTrail(loadedTrail || []);
         return api
           .getPrediction(activeId)
-          .then(setPrediction)
-          .catch(() => setPrediction(null));
+          .then((pred) => {
+            if (pred) setPrediction(pred);
+          })
+          .catch(() => {
+            // Keep existing prediction if already calculated by analyze()
+          });
       })
       .catch(() =>
         setError("Unable to load this case from the intelligence service.")
       );
-  }, [activeId, allCases]);
+  }, [activeId]);
 
   const analyze = async () => {
     if (!activeId) return;
@@ -208,6 +212,9 @@ export function LiveInvestigator({
   };
 
   const handleSelectCase = (newId: string) => {
+    if (newId !== activeId) {
+      setPrediction(null);
+    }
     setActiveId(newId);
     onCaseChange?.(newId);
   };

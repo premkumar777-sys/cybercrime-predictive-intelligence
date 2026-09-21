@@ -104,11 +104,15 @@ class BlockchainService:
         if not case:
             return
 
-        # Record Genesis Case Registration Block from live DB data
+        try:
+            amt = float(case.amount) if case.amount is not None else 0.0
+        except (ValueError, TypeError):
+            amt = 0.0
+
         case_payload = {
             "case_id": case.case_id,
             "fraud_type": case.fraud_type,
-            "amount": float(case.amount),
+            "amount": amt,
             "destination_account": case.destination_account,
             "transaction_time": str(case.transaction_time),
             "created_at": str(case.created_at)
@@ -225,8 +229,14 @@ class BlockchainService:
 
             # 4. Cross-verify against LIVE database tables (detect direct DB row tampering)
             if b.event_type == "CASE_REGISTERED" and case:
-                live_amount = float(case.amount)
-                recorded_amount = float((b.event_data or {}).get("amount", -1))
+                try:
+                    live_amount = float(case.amount) if case.amount is not None else 0.0
+                except (ValueError, TypeError):
+                    live_amount = 0.0
+                try:
+                    recorded_amount = float((b.event_data or {}).get("amount", -1))
+                except (ValueError, TypeError):
+                    recorded_amount = -1.0
                 if live_amount != recorded_amount:
                     block_errors.append(
                         f"Tamper detected in live database! Live amount (₹{live_amount}) != Block amount (₹{recorded_amount})"
