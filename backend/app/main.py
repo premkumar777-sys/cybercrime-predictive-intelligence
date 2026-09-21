@@ -73,6 +73,8 @@ def startup_event():
         repo = Repository(db)
         repo.seed_locations()
         repo.seed_users()
+        repo.seed_sample_cases()
+        repo.seed_test_graph()
     finally:
         db.close()
 
