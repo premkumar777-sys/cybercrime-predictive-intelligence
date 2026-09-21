@@ -115,6 +115,12 @@ export type AuditVerification = {
 };
 
 export const api = {
+  listCases: () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return request<ApiCase[]>("/cases", {
+      ...(token && { headers: { "Authorization": `Bearer ${token}` } }),
+    });
+  },
   registerCitizen: (payload: CitizenRegistrationPayload) =>
     request<CitizenProfile>("/citizens/register", { method: "POST", body: JSON.stringify(payload) }),
   login: async (payload: { email: string; role: UserRole; password?: string }): Promise<AuthUser> => {
