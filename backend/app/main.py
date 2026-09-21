@@ -68,8 +68,6 @@ def startup_event():
         repo = Repository(db)
         repo.seed_locations()
         repo.seed_users()
-        repo.seed_sample_cases()
-        repo.seed_test_graph()
     finally:
         db.close()
 
@@ -131,7 +129,7 @@ def get_case(case_id: str, db: Session = Depends(get_db), current_user: dict = D
 
 
 @app.post("/cases/{case_id}/analyze")
-def analyze_case(case_id: str, db: Session = Depends(get_db), current_user: dict = Depends(require_role(["investigator"]))):
+def analyze_case(case_id: str, db: Session = Depends(get_db), current_user: dict = Depends(require_role(["investigator", "police"]))):
     repo = Repository(db)
     case = repo.get_case(case_id, current_user)
     if not case:
