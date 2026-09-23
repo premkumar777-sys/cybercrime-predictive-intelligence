@@ -610,9 +610,67 @@ export function LiveInvestigator({
                           </div>
                         </div>
 
-                        <div className="mt-2 rounded bg-muted/50 p-2 font-mono text-[10px] text-muted-foreground">
-                          <span className="font-sans font-bold text-foreground mr-2">Synchronized Event Data:</span>
-                          {JSON.stringify(block.event_data)}
+                        {/* Structured Event Details */}
+                        <div className="mt-2.5 rounded border border-border/60 bg-muted/30 p-2.5 text-[10px] space-y-1.5">
+                          <p className="font-sans font-semibold text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Event Details</p>
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            {block.event_data?.fraud_type && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Fraud Type:</span>
+                                <span className="font-semibold text-foreground truncate">{String(block.event_data.fraud_type).replaceAll("_", " ")}</span>
+                              </div>
+                            )}
+                            {block.event_data?.amount != null && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Amount:</span>
+                                <span className="font-semibold text-foreground">₹{Number(block.event_data.amount).toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            {block.event_data?.destination_account && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Dest. Account:</span>
+                                <span className="font-mono font-semibold text-foreground truncate">{block.event_data.destination_account}</span>
+                              </div>
+                            )}
+                            {block.event_data?.transaction_time && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Txn Time:</span>
+                                <span className="font-semibold text-foreground">{new Date(block.event_data.transaction_time).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {block.event_data?.risk_level && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Risk Level:</span>
+                                <span className={`font-bold uppercase ${block.event_data.risk_level === "HIGH" ? "text-red-500" : block.event_data.risk_level === "MEDIUM" ? "text-amber-500" : "text-emerald-500"}`}>
+                                  {block.event_data.risk_level}
+                                </span>
+                              </div>
+                            )}
+                            {block.event_data?.prediction_count != null && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Predictions:</span>
+                                <span className="font-semibold text-foreground">{block.event_data.prediction_count} location(s)</span>
+                              </div>
+                            )}
+                            {block.event_data?.top_location && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Top Location:</span>
+                                <span className="font-semibold text-foreground truncate">{block.event_data.top_location}</span>
+                              </div>
+                            )}
+                            {/* Top prediction location from nested predictions array */}
+                            {!block.event_data?.top_location && Array.isArray(block.event_data?.top_predictions) && block.event_data.top_predictions[0]?.location_name && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground shrink-0">Top Location:</span>
+                                <span className="font-semibold text-foreground truncate">{block.event_data.top_predictions[0].location_name}</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Payload Integrity Hash */}
+                          <div className="mt-1.5 flex items-center gap-1.5 border-t border-border/40 pt-1.5 font-mono">
+                            <span className="text-muted-foreground shrink-0">Payload Hash:</span>
+                            <span className="truncate text-primary/80" title={block.payload_hash}>{block.payload_hash}</span>
+                          </div>
                         </div>
                       </div>
                     );
