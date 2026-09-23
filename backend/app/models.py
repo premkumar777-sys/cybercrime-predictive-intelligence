@@ -88,7 +88,7 @@ class PredictionModel(Base):
     triggered_at = Column(DateTime, default=datetime.utcnow)
     model_version = Column(String, nullable=True)
     data_snapshot = Column(DateTime, nullable=True)
-    # Keeping these for backward compatibility during transition
+    # Keeping these for backward compatibility
     risk_level = Column(String, nullable=True) 
     reason = Column(String, nullable=True)
     predictions = Column(JSON, nullable=True)
@@ -119,3 +119,17 @@ class EvidenceModel(Base):
     content_type = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+
+class BlockchainAuditModel(Base):
+    __tablename__ = "blockchain_audit_blocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(String, index=True)
+    block_index = Column(Integer, index=True)
+    event_type = Column(String) # e.g. CASE_REGISTERED, ML_PREDICTION_GENERATED, LEA_DISPATCH_TRIGGERED
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    actor = Column(String, default="SYSTEM")
+    payload_hash = Column(String) # SHA-256 of canonical event data
+    previous_hash = Column(String) # SHA-256 of previous block
+    block_hash = Column(String, unique=True, index=True) # SHA-256 of full block header
+    event_data = Column(JSON) # Actual snapshot of recorded data for verification

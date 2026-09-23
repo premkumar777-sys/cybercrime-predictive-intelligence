@@ -11,9 +11,8 @@ from app.database import SessionLocal
 from app.models import AccountModel, LocationModel, TransactionModel
 
 CSV_PATH = os.path.join(
-    os.environ.get("USERPROFILE", ""),
-    ".gemini", "antigravity-ide", "brain",
-    "26bb42df-e0c1-4221-849d-abd29822cba1", ".user_uploaded", "media_1789651077032.csv"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "tests_dummy.csv"
 )
 
 # Deterministic zone mapping

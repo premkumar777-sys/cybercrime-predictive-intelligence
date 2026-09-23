@@ -5,11 +5,15 @@ from sqlalchemy.orm import Session
 from .schemas import CaseCreate, CitizenRegistration, CitizenRegistrationResponse, LoginRequest, LoginResponse, PredictionResponse
 from .container import predictor
 from .database import get_db, Base, engine
+from . import models
 from .repositories.repository import Repository
 from .services.notification_service import notifier
+from .services.blockchain_service import blockchain_service
 from .services.auth_service import verify_password, create_access_token, decode_access_token
 
 app = FastAPI(title="Cybercrime Predictive Intelligence API")
+
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,8 +63,9 @@ def require_role(allowed_roles: list):
 @app.on_event("startup")
 def startup_event():
     # Create tables if they don't exist
-    # Schema changes are now managed by Alembic, so we don't automatically create tables here.
-    pass
+    from . import models
+    Base.metadata.create_all(bind=engine)
+
     # Seed locations using a short-lived session
     from .database import SessionLocal
     db = SessionLocal()
@@ -144,8 +149,8 @@ def analyze_case(case_id: str, db: Session = Depends(get_db), current_user: dict
     pred = predictor.analyze(case, locations, db)
     repo.add_prediction(case_id, pred)
     
-    # Trigger SIH Alert Mock
-    notifier.trigger_alerts(case_id, pred)
+    # Trigger SIH Alert & dispatch
+    notifier.trigger_alerts(case_id, pred, db=db)
     
     return pred
 
@@ -163,28 +168,39 @@ def get_predictions(case_id: str, db: Session = Depends(get_db), current_user: d
     return pred
 
 
+@app.get("/cases/{case_id}/audit-trail")
+def get_case_audit_trail(case_id: str, db: Session = Depends(get_db)):
+    case = db.query(CaseModel).filter(CaseModel.case_id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="case not found")
+    return blockchain_service.get_audit_trail(db, case_id)
+
+
+@app.post("/cases/{case_id}/verify-audit")
+def verify_case_audit_trail(case_id: str, db: Session = Depends(get_db)):
+    case = db.query(CaseModel).filter(CaseModel.case_id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="case not found")
+    return blockchain_service.verify_audit_trail(db, case_id)
+
 from fastapi import File, UploadFile
 from .services.storage_service import StorageService
 
 @app.post("/cases/{case_id}/evidence")
 async def upload_evidence(case_id: str, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     repo = Repository(db)
-    # 1. Authorize: user must have access to this case
     case = repo.get_case(case_id, current_user)
     if not case:
         raise HTTPException(status_code=403, detail="Not authorized to upload evidence to this case")
 
-    # 2. Upload and validate
     storage_svc = StorageService()
     metadata = await storage_svc.upload_evidence(case_id, file)
 
-    # 3. Save to PostgreSQL
     import logging
     try:
         ev = repo.add_evidence(case_id, current_user["email"], metadata)
         return ev
     except Exception as e:
-        # DB insert failed, we must rollback the uploaded Storage object
         storage_path = metadata["storage_path"]
         try:
             storage_svc.delete_evidence(storage_path)
@@ -192,14 +208,12 @@ async def upload_evidence(case_id: str, file: UploadFile = File(...), db: Sessio
         except Exception as cleanup_err:
             logging.error(f"CRITICAL: Orphaned evidence in storage: {storage_path}. Cleanup failed: {str(cleanup_err)}")
         
-        # Return a safe 5xx error
         raise HTTPException(status_code=500, detail="Failed to save evidence metadata. Upload rolled back.")
 
 
 @app.get("/cases/{case_id}/evidence")
 def list_evidence(case_id: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     repo = Repository(db)
-    # 1. Authorize
     case = repo.get_case(case_id, current_user)
     if not case:
         raise HTTPException(status_code=403, detail="Not authorized to view this case")
@@ -210,21 +224,17 @@ def list_evidence(case_id: str, db: Session = Depends(get_db), current_user: dic
 @app.get("/cases/{case_id}/evidence/{evidence_id}/download")
 def download_evidence(case_id: str, evidence_id: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     repo = Repository(db)
-    # 1. Authorize Case
     case = repo.get_case(case_id, current_user)
     if not case:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
 
-    # 2. Verify Evidence belongs to Case
     ev = repo.get_single_evidence(case_id, evidence_id)
     if not ev:
         raise HTTPException(status_code=404, detail="Evidence not found")
 
-    # 3. Get Signed URL
     storage_svc = StorageService()
     url = storage_svc.get_signed_url(ev["storage_path"])
     
-    # Return as part of EvidenceResponse model mapping
     ev["download_url"] = url
     return ev
 
@@ -234,3 +244,4 @@ def list_locations(db: Session = Depends(get_db)):
     repo = Repository(db)
     locs = repo.get_locations()
     return list(locs.values())
+
