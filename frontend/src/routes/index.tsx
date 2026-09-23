@@ -82,7 +82,7 @@ export const Route = createFileRoute("/")({
         content:
           "Fictional Smart India Hackathon prototype for complaint-led cybercrime predictive intelligence.",
       },
-      { property: "og:title", content: "Telangana Cybercrime Predictive Intelligence" },
+      { property: "og:title", content: "India Cybercrime Predictive Intelligence" },
       {
         property: "og:description",
         content: "Frontend-only civic technology prototype for cybercrime investigation workflows.",
@@ -139,12 +139,12 @@ function App() {
             <span className="hidden sm:block">English · తెలుగు</span>
             {user?.role === "police" && (
               <span className="font-semibold text-sky-200">
-                Logged in: Medchal Police Station · Medchal-Malkajgiri District
+                Logged in: National Cyber Crime Portal · Ministry of Home Affairs
               </span>
             )}
             {user?.role === "investigator" && (
               <span className="font-semibold text-emerald-200">
-                Investigator Command Unit · State Cyber Crime CID
+                Investigator Command Unit · National Cyber Crime CID
               </span>
             )}
           </div>
@@ -157,16 +157,16 @@ function App() {
           >
             <img
               src="/telangana-cybercrime-logo.jpeg"
-              alt="Telangana Cybercrime Predictive Intelligence logo"
+              alt="India Cybercrime Predictive Intelligence logo"
               className="size-full object-cover"
             />
           </button>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-xs font-semibold text-primary sm:text-sm">
-              తెలంగాణ సైబర్ క్రైమ్ ప్రిడిక్టివ్ ఇంటెలిజెన్స్
+              भारत साइबर क्राइम प्रेडिक्टिव इंटेलिजेंस
             </div>
             <div className="truncate text-sm font-extrabold sm:text-lg">
-              Telangana Cybercrime Predictive Intelligence Platform
+              India Cybercrime Predictive Intelligence Platform
             </div>
           </div>
           {user?.role === "police" && (
@@ -175,7 +175,7 @@ function App() {
                 Police Station Portal
               </span>
               <span className="text-xs font-semibold text-muted-foreground">
-                Inspector V. Raghunath (SHO)
+                Inspector (SHO) · I4C Division
               </span>
             </div>
           )}
@@ -423,11 +423,11 @@ function Landing({
             <div className="flex items-center gap-2">
               <img
                 src="/telangana-cybercrime-logo.jpeg"
-                alt="Telangana Seal"
+                alt="India Seal"
                 className="h-9 w-9 rounded-full border border-sky-300/40 object-cover shadow-sm"
               />
               <span className="text-xs font-bold uppercase tracking-wider text-sky-200 hidden sm:inline-block">
-                Ministry of Home Affairs · Telangana Cybercrime Platform
+                Ministry of Home Affairs · India Cybercrime Predictive Platform
               </span>
             </div>
             <div className="flex items-center">
@@ -1093,7 +1093,7 @@ function ReportForm({
               />
             </label>
             <Field label="Transaction reference" value="UPI-TXN-DEMO-84721" />
-            <Field label="Location" value="Hyderabad, Telangana" />
+            <Field label="Location" value="New Delhi, India" />
           </div>
           <label className="mt-4 block text-xs font-semibold">
             Incident description

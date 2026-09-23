@@ -167,7 +167,7 @@ export function LiveInvestigator({
     setBusy(true);
     setShowAnalysisModal(true);
     setAnalysisStep(0);
-    setAnalysisLogs(["[0.05s] 🌐 CONNECTING TO TELANGANA CYBER CRIME DATABASE..."]);
+    setAnalysisLogs(["[0.05s] 🌐 CONNECTING TO NATIONAL CYBER CRIME DATABASE (I4C / MHA)..."]);
     setError(null);
 
     const logSequence = [
@@ -261,7 +261,7 @@ export function LiveInvestigator({
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
         <div>
           <p className="text-xs font-bold uppercase text-primary">
-            State Cyber Crime CID · Command Workspace
+            National Cyber Crime CID · Command Workspace
           </p>
           <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-foreground">
             Predictive Case Intelligence & Withdrawal Analytics
@@ -700,7 +700,7 @@ export function LiveInvestigator({
             {/* Modal Footer telemetry */}
             <div className="flex items-center justify-between bg-slate-900/90 px-4 py-2.5 text-[10px] text-slate-400">
               <span>SECURITY SEAL: <strong className="text-emerald-400">BSA SECTION 63 / 65B VALIDATED</strong></span>
-              <span className="text-cyan-400 font-bold">STATE CYBER CRIME CID COMMAND</span>
+              <span className="text-cyan-400 font-bold">NATIONAL CYBER CRIME CID COMMAND</span>
             </div>
           </div>
         </div>

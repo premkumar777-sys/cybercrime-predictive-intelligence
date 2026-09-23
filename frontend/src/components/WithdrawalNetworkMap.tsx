@@ -407,7 +407,7 @@ export function WithdrawalNetworkMap({ predictions, locations, caseId, muleAccou
 
           {/* Bottom Watermark & Coordinates Ticks */}
           <text x={16} y={H - 12} fontSize={8} fill="rgba(0,240,255,0.4)" fontWeight="700" letterSpacing="1">
-            LAT 17.3850° N, LON 78.4867° E · TELANGANA CYBER CRIME COMMAND
+            LAT 28.6139° N, LON 77.2090° E · NATIONAL CYBER CRIME REPORTING PORTAL · I4C / MHA
           </text>
           <text x={W - 16} y={H - 12} textAnchor="end" fontSize={8} fill="rgba(255,42,95,0.6)" fontWeight="800" letterSpacing="1">
             CLASSIFIED · LAW ENFORCEMENT OPERATIONAL VIEW
@@ -498,7 +498,7 @@ export function WithdrawalNetworkMap({ predictions, locations, caseId, muleAccou
             ))}
           </div>
           <span className="text-[10px] uppercase tracking-widest font-extrabold text-cyan-500/70">
-            TELANGANA STATE CYBER CRIME COMMAND BUREAU
+            NATIONAL CYBER CRIME COMMAND BUREAU · MHA / I4C
           </span>
         </div>
       )}
