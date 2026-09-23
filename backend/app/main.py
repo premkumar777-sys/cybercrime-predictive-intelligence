@@ -6,6 +6,7 @@ from .schemas import CaseCreate, CitizenRegistration, CitizenRegistrationRespons
 from .container import predictor
 from .database import get_db, Base, engine
 from . import models
+from .models import CaseModel
 from .repositories.repository import Repository
 from .services.notification_service import notifier
 from .services.blockchain_service import blockchain_service
