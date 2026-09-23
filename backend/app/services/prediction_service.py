@@ -117,13 +117,13 @@ class MLPredictionService(PredictionService):
                 ]]
                 pred_score = self.model.predict(features_input)[0]
             
-            score = max(0.01, min(pred_score, 0.99))
+            score = float(max(0.01, min(float(pred_score), 0.99)))
             
             feature_indicators = {
-                "transaction_graph_strength": transaction_graph_strength,
-                "historical_association": historical_association,
-                "temporal_similarity": temporal_similarity,
-                "geographic_relevance": geographic_relevance
+                "transaction_graph_strength": float(transaction_graph_strength),
+                "historical_association": float(historical_association),
+                "temporal_similarity": float(temporal_similarity),
+                "geographic_relevance": float(geographic_relevance)
             }
             
             # Dynamically derive predicted time window from historical avg time
@@ -135,7 +135,7 @@ class MLPredictionService(PredictionService):
             items.append({
                 "location_id": loc_id,
                 "location_name": loc.get("name"),
-                "risk_score": round(score, 3),
+                "risk_score": round(float(score), 3),
                 "time_window": time_window,
                 "features": feature_indicators,
             })
